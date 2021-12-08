@@ -2,91 +2,91 @@
 #include <math.h>
 
 const std::vector<QString> PLANT_NAME = {
-    "Íã¶¹ÉäÊÖ",
-    "ÏòÈÕ¿û",
-    "Ó£ÌÒÕ¨µ¯",
-    "¼á¹û",
-    "ÍÁ¶¹À×",
-    "º®±ùÉäÊÖ",
-    "´ó×ì»¨",
-    "Ë«·¢ÉäÊÖ",
-    "Ğ¡Åç¹½",
-    "Ñô¹â¹½",
-    "´óÅç¹½",
-    "Ä¹±»ÍÌÊÉÕß",
-    "÷È»ó¹½",
-    "µ¨Ğ¡¹½",
-    "º®±ù¹½",
-    "»ÙÃğ¹½",
-    "Ë¯Á«",
-    "ÙÁ¹Ï",
-    "ÈıÏßÉäÊÖ",
-    "²øÈÆº£Ôå",
-    "»ğ±¬À±½·",
-    "µØ´Ì",
-    "»ğ¾æÊ÷×®",
-    "¸ß¼á¹û",
-    "º£Ä¢¹½",
-    "Â·µÆ»¨",
-    "ÏÉÈËÕÆ",
-    "ÈıÒ¶²İ",
-    "ÁÑ¼ÔÉäÊÖ",
-    "ÑîÌÒ",
-    "ÄÏ¹ÏÍ·",
-    "´ÅÁ¦¹½",
-    "¾íĞÄ²ËÍ¶ÊÖ",
-    "»¨Åè",
-    "ÓñÃ×Í¶ÊÖ",
-    "¿§·È¶¹",
-    "´óËâ",
-    "Ò¶×Ó±£»¤É¡",
-    "½ğÕµ»¨",
-    "Î÷¹ÏÍ¶ÊÖ",
-    "»úÇ¹ÉäÊÖ",
-    "Ë«×ÓÏòÈÕ¿û",
-    "ÓÇÓôÄ¢¹½",
-    "ÏãÆÑ",
-    "±ù¹Ï",
-    "Îü½ğ´Å",
-    "µØ´ÌÍõ",
-    "ÓñÃ×¼ÓÅ©ÅÚ",
-    "Ä£·ÂÕß",
+    "è±Œè±†å°„æ‰‹",
+    "å‘æ—¥è‘µ",
+    "æ¨±æ¡ƒç‚¸å¼¹",
+    "åšæœ",
+    "åœŸè±†é›·",
+    "å¯’å†°å°„æ‰‹",
+    "å¤§å˜´èŠ±",
+    "åŒå‘å°„æ‰‹",
+    "å°å–·è‡",
+    "é˜³å…‰è‡",
+    "å¤§å–·è‡",
+    "å¢“è¢«åå™¬è€…",
+    "é­…æƒ‘è‡",
+    "èƒ†å°è‡",
+    "å¯’å†°è‡",
+    "æ¯ç­è‡",
+    "ç¡è²",
+    "å€­ç“œ",
+    "ä¸‰çº¿å°„æ‰‹",
+    "ç¼ ç»•æµ·è—»",
+    "ç«çˆ†è¾£æ¤’",
+    "åœ°åˆº",
+    "ç«ç‚¬æ ‘æ¡©",
+    "é«˜åšæœ",
+    "æµ·è˜‘è‡",
+    "è·¯ç¯èŠ±",
+    "ä»™äººæŒ",
+    "ä¸‰å¶è‰",
+    "è£‚èšå°„æ‰‹",
+    "æ¨æ¡ƒ",
+    "å—ç“œå¤´",
+    "ç£åŠ›è‡",
+    "å·å¿ƒèœæŠ•æ‰‹",
+    "èŠ±ç›†",
+    "ç‰ç±³æŠ•æ‰‹",
+    "å’–å•¡è±†",
+    "å¤§è’œ",
+    "å¶å­ä¿æŠ¤ä¼",
+    "é‡‘ç›èŠ±",
+    "è¥¿ç“œæŠ•æ‰‹",
+    "æœºæªå°„æ‰‹",
+    "åŒå­å‘æ—¥è‘µ",
+    "å¿§éƒè˜‘è‡",
+    "é¦™è’²",
+    "å†°ç“œ",
+    "å¸é‡‘ç£",
+    "åœ°åˆºç‹",
+    "ç‰ç±³åŠ å†œç‚®",
+    "æ¨¡ä»¿è€…",
 };
 
 const std::vector<QString> ZOMBIE_NAME = {
-    "ÆÕ½©",
-    "ÆìÖÄ",
-    "Â·ÕÏ",
-    "³Å¸Ë",
-    "ÌúÍ°",
-    "¶Á±¨",
-    "ÌúÃÅ",
-    "éÏé­",
-    "ÎèÍõ",
-    "°éÎè",
-    "Ñ¼×Ó",
-    "Ç±Ë®",
-    "±ù³µ",
-    "Ñ©ÇÁ",
-    "º£ëà",
-    "Ğ¡³ó",
-    "ÆøÇò",
-    "¿ó¹¤",
-    "ÌøÌø",
-    "Ñ©ÈË",
-    "±Ä¼«",
-    "·öÌİ",
-    "Í¶Àº",
-    "°×ÑÛ",
-    "Ğ¡¹í",
-    "½©²©",
-    "Íã¶¹",
-    "¼á¹û",
-    "À±½·",
-    "»úÇ¹",
-    "ÙÁ¹Ï",
-    "¸ßÇ½",
-    "ºìÑÛ",
+    "æ™®åƒµ",
+    "æ——å¸œ",
+    "è·¯éšœ",
+    "æ’‘æ†",
+    "é“æ¡¶",
+    "è¯»æŠ¥",
+    "é“é—¨",
+    "æ©„æ¦„",
+    "èˆç‹",
+    "ä¼´èˆ",
+    "é¸­å­",
+    "æ½œæ°´",
+    "å†°è½¦",
+    "é›ªæ©‡",
+    "æµ·è±š",
+    "å°ä¸‘",
+    "æ°”çƒ",
+    "çŸ¿å·¥",
+    "è·³è·³",
+    "é›ªäºº",
+    "è¹¦æ",
+    "æ‰¶æ¢¯",
+    "æŠ•ç¯®",
+    "ç™½çœ¼",
+    "å°é¬¼",
+    "åƒµåš",
+    "è±Œè±†",
+    "åšæœ",
+    "è¾£æ¤’",
+    "æœºæª",
+    "å€­ç“œ",
+    "é«˜å¢™",
+    "çº¢çœ¼",
 };
 
 const int DEFAULT_STATE = 0xffff;
@@ -96,26 +96,85 @@ std::vector<MemoryDict> zombie_memory_dict;
 std::vector<std::map<int, Offset>> plant_offset_dict;
 std::vector<std::map<int, Offset>> zombie_offset_dict;
 
-std::pair<QStringList, double> PlantMemoryToString(const std::list<int>& dict_index, double find_threshold)
+QStringList ObjectIndexToString(const std::list<int>& dict_index, int target_index, int object_type, int update_time)
 {
+    std::vector<MemoryDict>* memory_dict_vec;
+    AbstractMemory* abstract_memory;
+    int object_offset;
+    int data_size;
+    const std::vector<QString>* name;
+    if (object_type == PLANT) {
+        memory_dict_vec = &plant_memory_dict;
+        abstract_memory = new PlantMemory(target_index);
+        object_offset = PLANT_OFFSET;
+        data_size = 0x14c;
+        name = &PLANT_NAME;
+    } else {
+        memory_dict_vec = &zombie_memory_dict;
+        abstract_memory = new ZombieMemory(target_index);
+        object_offset = ZOMBIE_OFFSET;
+        data_size = 0x15c;
+        name = &ZOMBIE_NAME;
+    }
+
+    // é€‰ä¸­çš„å¯¹è±¡å‘å…‰
+    uintptr_t offset = ReadMemory<uintptr_t>(g_mainobject + object_offset);
+    if (object_type == PLANT) {
+        WriteMemory(update_time > 1000 ? update_time / 10 : 100, offset + target_index * 0x14c + 0xb8);
+    } else {
+        WriteMemory(update_time > 1000 ? update_time / 10 : 100, offset + target_index * 0x15c + 0x54);
+    }
+    abstract_memory->setIndex(target_index);
+
     QStringList text_list;
+    text_list.append(QString("ç±»å‹ : %1").arg((*name)[abstract_memory->type()]));
+    delete abstract_memory;
+    for (const auto& index : dict_index) {
+        const auto& memory_dict = (*memory_dict_vec)[index];
+        if (index != 0) {
+            if (memory_dict.data_type == "int") {
+                text_list.append(QString("%1 : %2").arg(memory_dict.name).arg(ReadMemory<int>(offset + target_index * data_size + memory_dict.address)));
+            } else if (memory_dict.data_type == "float") {
+                text_list.append(QString("%1 : %2").arg(memory_dict.name).arg(ReadMemory<float>(offset + target_index * data_size + memory_dict.address)));
+            } else if (memory_dict.data_type == "bool") {
+                text_list.append(QString("%1 : %2").arg(memory_dict.name).arg(ReadMemory<bool>(offset + target_index * data_size + memory_dict.address)));
+            } else if (memory_dict.data_type == "short") {
+                text_list.append(QString("%1 : %2").arg(memory_dict.name).arg(ReadMemory<short>(offset + target_index * data_size + memory_dict.address)));
+            } else if (memory_dict.data_type == "byte") {
+                text_list.append(QString("%1 : %2").arg(memory_dict.name).arg(ReadMemory<byte>(offset + target_index * data_size + memory_dict.address)));
+            }
+        } else {
+            text_list.append(QString("%1 : %2").arg(memory_dict.name).arg(target_index));
+        }
+    }
+
+    return text_list;
+}
+
+std::pair<QStringList, double> PlantMemoryToString(const std::list<int>& dict_index, double find_threshold, const std::set<int>& type_set, int update_time)
+{
     int cnt_max = PlantMemory::countMax();
 
-    // ¼ÆËãÀëÊó±ê×î½üµÄ¶ÔÏó
-    int target_index = 0;
+    // è®¡ç®—ç¦»é¼ æ ‡æœ€è¿‘çš„å¯¹è±¡
+    static int last_target_index = -1;
+    int target_index = -1;
     int mouse_x = PvZMouseX();
     int mouse_y = PvZMouseY();
     float offset_x = 0;
     float offset_y = 0;
-    int plant_type = 0;
     float min_distance = 0xffff;
     PlantMemory plant;
+    int plant_type;
     for (int index = 0; index < cnt_max; ++index) {
         plant.setIndex(index);
         if (plant.isCrushed() || plant.isDisappeared()) {
             continue;
         }
-        auto plant_offset_map = plant_offset_dict[plant.type()];
+        plant_type = plant.type();
+        if (type_set.find(plant_type) == type_set.end()) {
+            continue;
+        }
+        const auto& plant_offset_map = plant_offset_dict[plant.type()];
         auto iter = plant_offset_map.find(plant.state());
         if (iter == plant_offset_map.end()) {
             iter = plant_offset_map.find(DEFAULT_STATE);
@@ -132,60 +191,37 @@ std::pair<QStringList, double> PlantMemoryToString(const std::list<int>& dict_in
     }
 
     if (min_distance > find_threshold) {
-        return {text_list, min_distance};
+        return {QStringList(), min_distance};
     }
-
-    uintptr_t offset = ReadMemory<uintptr_t>(g_mainobject + PLANT_OFFSET);
-    plant.setIndex(target_index);
-    text_list.append(QString("ÀàĞÍ : %1").arg(PLANT_NAME[plant.type()]));
-    for (const auto& index : dict_index) {
-        if (index == 0) {
-            text_list.append(QString("%1 : %2").arg(plant_memory_dict[index].name).arg(target_index));
-        } else {
-            switch (plant_memory_dict[index].data_type) {
-            case 0:
-                text_list.append(QString("%1 : %2").arg(plant_memory_dict[index].name).arg(ReadMemory<int>(offset + target_index * 0x14c + plant_memory_dict[index].address)));
-                break;
-            case 1:
-                text_list.append(QString("%1 : %2").arg(plant_memory_dict[index].name).arg(ReadMemory<float>(offset + target_index * 0x14c + plant_memory_dict[index].address)));
-                break;
-            case 2:
-                text_list.append(QString("%1 : %2").arg(plant_memory_dict[index].name).arg(ReadMemory<bool>(offset + target_index * 0x14c + plant_memory_dict[index].address)));
-                break;
-            case 3:
-                text_list.append(QString("%1 : %2").arg(plant_memory_dict[index].name).arg(ReadMemory<short>(offset + target_index * 0x14c + plant_memory_dict[index].address)));
-                break;
-            default:
-                text_list.append(QString("%1 : %2").arg(plant_memory_dict[index].name).arg(ReadMemory<byte>(offset + target_index * 0x14c + plant_memory_dict[index].address)));
-                break;
-            }
-        }
-    }
-
-    return {text_list, min_distance};
+    return {ObjectIndexToString(dict_index, target_index, PLANT, update_time), min_distance};
 }
 
-std::pair<QStringList, double> ZombieMemoryToString(const std::list<int>& dict_index, double find_threshold)
+std::pair<QStringList, double> ZombieMemoryToString(const std::list<int>& dict_index, double find_threshold, const std::set<int>& type_set, int update_time)
 {
     QStringList text_list;
     int cnt_max = ZombieMemory::countMax();
 
-    // ¼ÆËãÀëÊó±ê×î½üµÄ¶ÔÏó
-    int target_index = 0;
+    // è®¡ç®—ç¦»é¼ æ ‡æœ€è¿‘çš„å¯¹è±¡
+    static int last_target_index = -1;
+    int target_index = -1;
     int mouse_x = PvZMouseX();
     int mouse_y = PvZMouseY();
     float offset_x = 0;
     float offset_y = 0;
-    int zombie_type = 0;
     float min_distance = 0xffff;
     ZombieMemory zombie;
+    int zombie_type;
     for (int index = 0; index < cnt_max; ++index) {
 
         zombie.setIndex(index);
-        if (zombie.isDead() || !zombie.isExist()) {
+        if (zombie.isDead() || zombie.isDisappeared()) {
             continue;
         }
-        auto zombie_offset_map = zombie_offset_dict[zombie.type()];
+        zombie_type = zombie.type();
+        if (type_set.find(zombie_type) == type_set.end()) {
+            continue;
+        }
+        const auto& zombie_offset_map = zombie_offset_dict[zombie_type];
         auto iter = zombie_offset_map.find(zombie.state());
         if (iter == zombie_offset_map.end()) {
             iter = zombie_offset_map.find(DEFAULT_STATE);
@@ -203,56 +239,33 @@ std::pair<QStringList, double> ZombieMemoryToString(const std::list<int>& dict_i
     }
 
     if (min_distance > find_threshold) {
-        return {text_list, min_distance};
+        return {QStringList(), min_distance};
     }
 
-    uintptr_t offset = ReadMemory<uintptr_t>(g_mainobject + ZOMBIE_OFFSET);
-    zombie.setIndex(target_index);
-    text_list.append(QString("ÀàĞÍ : %1").arg(ZOMBIE_NAME[zombie.type()]));
-    for (const auto& index : dict_index) {
-        if (index == 0) { // ±àºÅ
-            text_list.append(QString("%1 : %2").arg(zombie_memory_dict[index].name).arg(target_index));
-        } else { // ÆäËû
-            switch (zombie_memory_dict[index].data_type) {
-            case 0:
-                text_list.append(QString("%1 : %2").arg(zombie_memory_dict[index].name).arg(ReadMemory<int>(offset + target_index * 0x15c + zombie_memory_dict[index].address)));
-                break;
-            case 1:
-                text_list.append(QString("%1 : %2").arg(zombie_memory_dict[index].name).arg(ReadMemory<float>(offset + target_index * 0x15c + zombie_memory_dict[index].address)));
-                break;
-            case 2:
-                text_list.append(QString("%1 : %2").arg(zombie_memory_dict[index].name).arg(ReadMemory<bool>(offset + target_index * 0x15c + zombie_memory_dict[index].address)));
-                break;
-            case 3:
-                text_list.append(QString("%1 : %2").arg(zombie_memory_dict[index].name).arg(ReadMemory<short>(offset + target_index * 0x15c + zombie_memory_dict[index].address)));
-                break;
-            default:
-                text_list.append(QString("%1 : %2").arg(zombie_memory_dict[index].name).arg(ReadMemory<byte>(offset + target_index * 0x15c + zombie_memory_dict[index].address)));
-                break;
-            }
-        }
-    }
-
-    return {text_list, min_distance};
+    return {ObjectIndexToString(dict_index, target_index, ZOMBIE, update_time), min_distance};
 }
 
 QStringList SeedMemoryToString()
 {
     QStringList text_list;
 
-    // ¼ÆËãÀëÊó±ê×î½üµÄ¶ÔÏó
+    // è®¡ç®—ç¦»é¼ æ ‡æœ€è¿‘çš„å¯¹è±¡
     int target_index = -1;
     int mouse_x = PvZMouseX();
     int mouse_y = PvZMouseY();
-    float offset_x = 0;
-    float offset_y = 0;
-    int seed_type = 0;
-    float min_distance = 0xffff;
     SeedMemory seed;
     int cnt_max = seed.slotsCount();
+    int seed_x;
+    int seed_y;
+    int seed_width;
+    int seed_height;
     for (int index = 0; index < cnt_max; ++index) {
         seed.setIndex(index);
-        if (mouse_x - seed.abscissa() > 0 && mouse_x - seed.abscissa() < seed.width() && mouse_y - seed.ordinate() > 0 && mouse_y - seed.ordinate() < seed.height()) {
+        seed_x = seed.abscissa() + seed.xOffset();
+        seed_y = seed.ordinate();
+        seed_width = seed.width();
+        seed_height = seed.height();
+        if (mouse_x - seed_x > 0 && mouse_x - seed_x < seed_width && mouse_y - seed_y > 0 && mouse_y - seed_y < seed_height) {
             target_index = index;
             break;
         }
@@ -261,16 +274,20 @@ QStringList SeedMemoryToString()
     if (target_index == -1) {
         return text_list;
     }
+    seed.setIndex(target_index);
+    int seed_type = seed.type();
 
-    seed_type = seed.type();
-    QString str = "ÀàĞÍ : ";
+    if (seed_type < 0 || seed_type >= PLANT_NAME.size()) {
+        return text_list; // è¶…å‡ºç´¢å¼•å€¼ç›´æ¥è¿”å›ç©ºçª—å£
+    }
+    QString str = "ç±»å‹ : ";
     if (seed_type == 48) {
         seed_type = seed.imitatorType();
-        str += "Ä£·Â";
+        str += "æ¨¡ä»¿";
     }
     str += PLANT_NAME[seed_type];
     text_list.append(str);
-    text_list.append(QString("ÀäÈ´ : %1 / %2").arg(seed.CD()).arg(seed.initialCD()));
+    text_list.append(QString("å†·å´ : %1 / %2").arg(seed.CD()).arg(seed.initialCD()));
 
     return text_list;
 }
@@ -281,8 +298,6 @@ QStringList PlaceMemoryToString()
     int cnt_max = PlaceMemory::countMax();
 
     int target_index = -1;
-    int place_type = 0;
-    float min_distance = 0xffff;
     PlaceMemory place;
 
     for (int index = 0; index < cnt_max; ++index) {
@@ -301,29 +316,29 @@ QStringList PlaceMemoryToString()
     }
 
     place.setIndex(target_index);
-    text_list.append(QString("ÀàĞÍ : µ¯¿Ó"));
-    text_list.append(QString("ÏûÊ§µ¹¼ÆÊ± : %1").arg(place.value()));
+    text_list.append(QString("ç±»å‹ : å¼¹å‘"));
+    text_list.append(QString("æ¶ˆå¤±å€’è®¡æ—¶ : %1").arg(place.value()));
 
     return text_list;
 }
 
 enum MemoryIndex {
-    PLANT_STACK,       // Ö²ÎïÕ»Î»
-    ZOMBIE_STACK,      // ½©Ê¬Õ»Î»
-    ICE_ROAD_ABSCISSA, // ±ùµÀµÄ×ø±ê
+    PLANT_STACK,       // æ¤ç‰©æ ˆä½
+    ZOMBIE_STACK,      // åƒµå°¸æ ˆä½
+    ICE_ROAD_ABSCISSA, // å†°é“çš„åæ ‡
 
-    REFRESH_COUNTDOWN,      // Ë¢ĞÂµ¹¼ÆÊ±
-    HUGE_REFRESH_COUNTDOWN, // ´ó²¨Ë¢ĞÂµ¹¼ÆÊ±
-    REFRESH_HP,             // Ë¢ĞÂÑªÁ¿
-    WAVE,                   // µ±Ç°µÄ²¨Êı
-    CLOCK                   // ¼ÆÊ±ÏµÍ³
+    REFRESH_COUNTDOWN,      // åˆ·æ–°å€’è®¡æ—¶
+    HUGE_REFRESH_COUNTDOWN, // å¤§æ³¢åˆ·æ–°å€’è®¡æ—¶
+    REFRESH_HP,             // åˆ·æ–°è¡€é‡
+    WAVE,                   // å½“å‰çš„æ³¢æ•°
+    CLOCK                   // è®¡æ—¶ç³»ç»Ÿ
 };
 
 QStringList OtherMemoryToString()
 {
     QStringList text_list;
     QString text;
-    // Ö²ÎïÕ»Î»
+    // æ¤ç‰©æ ˆä½
     uintptr_t plant_offset = ReadMemory<uintptr_t>(g_mainobject + 0xac);
     int plant_cnt_max = PlantMemory::countMax();
     int stack_top = ReadMemory<int>(g_mainobject + 0xb8);
@@ -340,7 +355,7 @@ QStringList OtherMemoryToString()
 
     text_list.append(text);
 
-    // ½©Ê¬Õ»Î»
+    // åƒµå°¸æ ˆä½
     uintptr_t zombie_offset = ReadMemory<uintptr_t>(g_mainobject + 0x90);
     int zombie_cnt_max = ZombieMemory::countMax();
     stack_top = ReadMemory<int>(g_mainobject + 0x9c);
@@ -356,30 +371,30 @@ QStringList OtherMemoryToString()
     text_list.append(text);
     text.clear();
 
-    // ±ùµÀ
+    // å†°é“
     for (int row = 0; row < 5; ++row) {
         text += QString("%1 : %2 | ").arg(row + 1).arg(IceAbscissa(row));
     }
     text += QString("%1 : %2").arg(6).arg(IceAbscissa(5));
     text_list.append(text);
 
-    // Ë¢ĞÂµ¹¼ÆÊ±
+    // åˆ·æ–°å€’è®¡æ—¶
     text = QString("%1 / %2").arg(Countdown()).arg(InitialCountdown());
     text_list.append(text);
 
-    // ´ó²¨Ë¢ĞÂµ¹¼ÆÊ±
+    // å¤§æ³¢åˆ·æ–°å€’è®¡æ—¶
     text = QString("%1").arg(HugeWaveCountdown());
     text_list.append(text);
 
-    // Ë¢ĞÂÑªÁ¿
+    // åˆ·æ–°è¡€é‡
     text = QString("%1").arg(RefreshHp());
     text_list.append(text);
 
-    // µ±Ç°²¨Êı
+    // å½“å‰æ³¢æ•°
     text = QString("%1 / %2").arg(NowWave()).arg(TotalWave());
     text_list.append(text);
 
-    // ¼ÆÊ±ÏµÍ³
+    // è®¡æ—¶ç³»ç»Ÿ
     text = QString("%1").arg(GameClock());
     text_list.append(text);
 

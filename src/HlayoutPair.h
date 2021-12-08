@@ -12,7 +12,7 @@
 #include <qlayout.h>
 
 // TEMPLATE CLASS LabelType
-// Ê¹ÓÃ´ËÀà½«¶ÔÁ½¸ö QClass ´ò°ü³ÉÒ»¸öË®Æ½²¼¾ÖµÄÕûÌå
+// ä½¿ç”¨æ­¤ç±»å°†å¯¹ä¸¤ä¸ª QClass æ‰“åŒ…æˆä¸€ä¸ªæ°´å¹³å¸ƒå±€çš„æ•´ä½“
 template <class First, class Second>
 class HLayoutPair : public QWidget {
 public:

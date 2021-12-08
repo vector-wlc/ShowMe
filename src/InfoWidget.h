@@ -5,7 +5,7 @@
  * @Description: 
  */
 #pragma once
-#pragma execution_character_set("utf-8")
+
 #include <qlabel.h>
 #include <qlayout.h>
 #include <qwidget.h>

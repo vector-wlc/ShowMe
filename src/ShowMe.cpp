@@ -1,7 +1,12 @@
 #include "ShowMe.h"
+#include "ClickLabel.h"
 
-#include "MemoryString.h"
+#include <QDesktopServices>
+#include <QMessageBox>
+#include <QStatusBar>
 #include <cmath>
+#include <qevent.h>
+#include <qheaderview.h>
 #include <qlayout.h>
 #include <qsettings.h>
 #include <qtabwidget.h>
@@ -10,45 +15,121 @@
 ShowMe::ShowMe(QWidget* parent)
     : QMainWindow(parent)
 {
+    setWindowTitle("ShowMe 1.1");
     timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, [=]() {
-        this->run();
-    });
+    connect(timer, &QTimer::timeout, [=]() { this->run(); });
 
     timer->setInterval(100);
     timer->start();
 
-    creatUi();
-    loadSettings();
-    connectSettingsPage();
+    this->creatUi();
+    this->loadSettings();
+    this->connectSettings();
 }
 
 ShowMe::~ShowMe()
 {
     saveSettings();
-    for (auto& info_wigdet : info_widget_vec) {
-        delete info_wigdet;
+    for (auto& info_widget : info_widget_vec) {
+        delete info_widget;
+    }
+
+    for (auto& info_widget : this->mutex_plant_info_widget_vec) {
+        delete info_widget;
+    }
+
+    for (auto& info_widget : this->mutex_zombie_info_widget_vec) {
+        delete info_widget;
     }
 }
 
-void ShowMe::run()
+void ShowMe::creatUi()
 {
-    if (!IsDisplayed()) {
-        for (auto& info_widget : this->info_widget_vec) {
-            info_widget->hide();
-        }
-        return;
-    }
+    this->setFont(QFont("Microsoft YaHei"));
+    tab_widget = new QTabWidget(this);
+    this->setCentralWidget(tab_widget);
+    tab_widget->addTab(createMutexPage(), "é”å®š");
+    tab_widget->addTab(createOtherPage(), "å…¶ä»–");
+    tab_widget->addTab(createSettingsPage(), "è®¾ç½®");
+    tab_widget->insertTab(0, createObjectPage(ZOMBIE), "åƒµå°¸");
+    tab_widget->insertTab(0, createObjectPage(PLANT), "æ¤ç‰©");
+    tab_widget->setCurrentIndex(0);
 
+    createStatusBar();
+}
+
+void ShowMe::loadSettings()
+{
+    QSettings settings("./ini/settings.ini", QSettings::IniFormat);
+    settings.setIniCodec(QTextCodec::codecForName("utf-8"));
+
+    // æ¤ç‰©é¡µé¢
+    loadObjectPageSettings(settings, PLANT);
+
+    // åƒµå°¸é¡µé¢
+    loadObjectPageSettings(settings, ZOMBIE);
+
+    // å…¨å±€
+    loadGlobalSettings(settings);
+
+    // plant
+    loadObjectSettings(settings, PLANT);
+
+    // zombie
+    loadObjectSettings(settings, ZOMBIE);
+}
+
+void ShowMe::connectSettings()
+{
+    connectGlobalSettings();
+    connectObjectSettings();
+}
+
+void ShowMe::saveSettings()
+{
+    QSettings settings("./ini/settings.ini", QSettings::IniFormat);
+    settings.setIniCodec(QTextCodec::codecForName("utf-8"));
+
+    // æ¤ç‰©é¡µé¢
+    saveObjectPageSettings(settings, PLANT);
+
+    // åƒµå°¸é¡µé¢
+    saveObjectPageSettings(settings, ZOMBIE);
+
+    // å…¨å±€
+    saveGlobalSettings(settings);
+
+    // æ¤ç‰©
+    saveObjectSettings(settings, PLANT);
+
+    // åƒµå°¸
+    saveObjectSettings(settings, ZOMBIE);
+}
+
+void ShowMe::showOnMouse()
+{
+    // åœ¨é¼ æ ‡ä¸Šçš„æ˜¾ç¤º
     std::vector<QStringList> text_list_vec;
     std::pair<QStringList, double> text_list_min_distance;
-    text_list_min_distance = PlantMemoryToString(plant_dict_index, this->plant_find_threshold_box->second.value());
-    text_list_vec.push_back(text_list_min_distance.first);
-    this->plant_save_btn->first.setText(QString("%1").arg(text_list_min_distance.second));
+    text_list_min_distance = PlantMemoryToString(
+        plant_state_list, plant_find_threshold, this->plant_type_set,
+        this->update_interval_box->second.value());
 
-    text_list_min_distance = ZombieMemoryToString(zombie_dict_index, this->zombie_find_threshold_box->second.value());
     text_list_vec.push_back(text_list_min_distance.first);
-    this->zombie_save_btn->first.setText(QString("%1").arg(text_list_min_distance.second));
+    if (this->object_box->second.currentIndex() == PLANT) {
+        this->save_btn->first.setText(
+            QString("%1").arg(text_list_min_distance.second));
+    }
+
+    text_list_min_distance = ZombieMemoryToString(
+        zombie_state_list, zombie_find_threshold, this->zombie_type_set,
+        this->update_interval_box->second.value());
+
+    text_list_vec.push_back(text_list_min_distance.first);
+    if (this->object_box->second.currentIndex() == ZOMBIE) {
+        this->save_btn->first.setText(
+            QString("%1").arg(text_list_min_distance.second));
+    }
 
     text_list_vec.push_back(SeedMemoryToString());
 
@@ -60,16 +141,122 @@ void ShowMe::run()
             info_widget_vec[i]->setText(text_list_vec[i]);
             int width_offset = info_widget_vec[i]->width() * int(j % 2);
             int height_offset = info_widget_vec[i]->height() * int(j < 2);
-            info_widget_vec[i]->move(QCursor::pos().x() - width_offset, QCursor::pos().y() - height_offset);
+            info_widget_vec[i]->move(QCursor::pos().x() - width_offset,
+                QCursor::pos().y() - height_offset);
             info_widget_vec[i]->show();
             ++j;
         } else {
             info_widget_vec[i]->hide();
         }
     }
+}
 
-    // µ±Ò³ÃæÔÚ "ÆäËû" Ê±ÏÔÊ¾ÆäËûÄÚÈİ
-    if (tab_widget->currentIndex() == 2) {
+void ShowMe::showOnMutex()
+{
+    // åœ¨é”ä¸Šçš„æ˜¾ç¤º
+    const int DEFAULT_STATE = 0xffff;
+    RECT rect;
+    GetWindowRect(g_hwnd, &rect);
+    // å½“é¡µé¢åœ¨ "é”å®š" çš„æ—¶å€™æ˜¾ç¤º
+    bool is_update_table = tab_widget->currentIndex() == 2;
+    int row_count = plant_mutex_table->rowCount();
+    PlantMemory plant;
+    int plant_type;
+    for (int row = 0; row < row_count; ++row) {
+        int index = plant_mutex_table->item(row, 0)->text().toInt();
+        plant.setIndex(index);
+        plant_type = plant.type();
+        if (plant.isDisappeared() || plant.isCrushed()) {
+            if (is_update_table) {
+                plant_mutex_table->item(row, 1)->setText("æœªçŸ¥");
+                plant_mutex_table->item(row, 2)->setText("æœªçŸ¥");
+            }
+            mutex_plant_info_widget_vec[row]->hide();
+        } else {
+            if (is_update_table) {
+                plant_mutex_table->item(row, 1)->setText(PLANT_NAME[plant_type]);
+                plant_mutex_table->item(row, 2)->setText(
+                    QString("(%1, %2)").arg(plant.row() + 1).arg(plant.col() + 1));
+            }
+            auto text_list = ObjectIndexToString(plant_state_list, index, PLANT,
+                this->update_interval_box->second.value());
+            mutex_plant_info_widget_vec[row]->setText(text_list);
+            const auto& plant_offset_map = plant_offset_dict[plant_type];
+            auto iter = plant_offset_map.find(plant.state());
+            if (iter == plant_offset_map.end()) {
+                iter = plant_offset_map.find(DEFAULT_STATE);
+            }
+            int offset_x = plant.hurtWidth() * iter->second.x;
+            int x = rect.left + plant.abscissa() + offset_x;
+            int y = rect.top + plant.ordinate();
+            mutex_plant_info_widget_vec[row]->move(x, y);
+            mutex_plant_info_widget_vec[row]->show();
+        }
+    }
+
+    row_count = zombie_mutex_table->rowCount();
+    ZombieMemory zombie;
+    int zombie_type;
+    for (int row = 0; row < row_count; ++row) {
+        int index = zombie_mutex_table->item(row, 0)->text().toInt();
+        zombie.setIndex(index);
+        zombie_type = zombie.type();
+        if (zombie.isDisappeared() || zombie.isDead()) {
+            if (is_update_table) {
+                zombie_mutex_table->item(row, 1)->setText("æœªçŸ¥");
+                zombie_mutex_table->item(row, 2)->setText("æœªçŸ¥");
+            }
+            mutex_zombie_info_widget_vec[row]->hide();
+        } else {
+            if (is_update_table) {
+                zombie_mutex_table->item(row, 1)->setText(ZOMBIE_NAME[zombie_type]);
+                zombie_mutex_table->item(row, 2)->setText(
+                    QString("(%1, %2)")
+                        .arg(zombie.row() + 1)
+                        .arg(zombie.abscissa() / 80 + 0.5));
+            }
+            auto text_list = ObjectIndexToString(zombie_state_list, index, ZOMBIE,
+                this->update_interval_box->second.value());
+            mutex_zombie_info_widget_vec[row]->setText(text_list);
+            const auto& zombie_offset_map = zombie_offset_dict[zombie_type];
+            auto iter = zombie_offset_map.find(zombie.state());
+            if (iter == zombie_offset_map.end()) {
+                iter = zombie_offset_map.find(DEFAULT_STATE);
+            }
+            int offset_x = zombie.hurtWidth() * iter->second.x;
+            int offset_y = zombie.hurtHeight() * iter->second.y;
+            int x = rect.left + zombie.abscissa() + offset_x;
+            int y = rect.top + zombie.ordinate() + offset_y;
+            mutex_zombie_info_widget_vec[row]->move(x, y);
+            mutex_zombie_info_widget_vec[row]->show();
+        }
+    }
+}
+
+void ShowMe::run()
+{
+    if (!IsDisplayed()) {
+        for (auto& info_widget : this->mutex_plant_info_widget_vec) {
+            info_widget->hide();
+        }
+        for (auto& info_widget : this->mutex_zombie_info_widget_vec) {
+            info_widget->hide();
+        }
+        return;
+    }
+
+    showOnMutex();
+
+    if (IsMouseInPvZ()) {
+        showOnMouse();
+    } else {
+        for (auto& info_widget : this->info_widget_vec) {
+            info_widget->hide();
+        }
+    }
+
+    // å½“é¡µé¢åœ¨ "å…¶ä»–" æ—¶æ˜¾ç¤ºå…¶ä»–å†…å®¹
+    if (tab_widget->currentIndex() == 3) {
         auto text_list = OtherMemoryToString();
         for (int i = 0; i < text_list.size(); ++i) {
             this->label_vec[i]->second.setText(text_list[i]);
@@ -77,154 +264,278 @@ void ShowMe::run()
     }
 }
 
-void ShowMe::creatUi()
+QWidget* ShowMe::createStatePage(int object_type)
 {
-    this->setFont(QFont("Microsoft YaHei"));
-    tab_widget = new QTabWidget(this);
-    tab_widget->addTab(creatPlantPage(), "Ö²Îï");
-    tab_widget->addTab(creatZombiePage(), "½©Ê¬");
-    tab_widget->addTab(creatOtherPage(), "ÆäËû");
-    tab_widget->addTab(creatSettingsPage(), "ÉèÖÃ");
-    this->setCentralWidget(tab_widget);
-}
+    QString type_memory_str = "";
+    std::vector<MemoryDict>* memory_dict_ptr;
+    std::list<int>* dict_index_ptr;
+    std::vector<CheckBoxWithIndex*>* state_box_vec_ptr;
 
-QWidget* ShowMe::creatPlantPage()
-{
-    // ¶ÁÈ¡ memory_dict.ini ÎÄ¼ş»ñÈ¡¶ÁÈ¡ÁĞ±í
+    switch (object_type) {
+    case PLANT:
+        type_memory_str = "plant_memory";
+        memory_dict_ptr = &plant_memory_dict;
+        dict_index_ptr = &this->plant_state_list;
+        state_box_vec_ptr = &this->plant_state_box_vec;
+        break;
+
+    default:
+        type_memory_str = "zombie_memory";
+        memory_dict_ptr = &zombie_memory_dict;
+        dict_index_ptr = &this->zombie_state_list;
+        state_box_vec_ptr = &this->zombie_state_box_vec;
+        break;
+    }
+    // è¯»å– memory_dict.ini æ–‡ä»¶è·å–è¯»å–åˆ—è¡¨
     QSettings settings("./ini/memory_dict.ini", QSettings::IniFormat);
     settings.setIniCodec(QTextCodec::codecForName("utf-8"));
-    QString plant_memory_dict_str = settings.value("plant_memory").toString();
-    auto plant_memory_str_list = plant_memory_dict_str.split("|");
+    QString memory_dict_str = settings.value(type_memory_str).toString();
+    auto memory_str_list = memory_dict_str.split("|");
 
     MemoryDict memory_dict;
-    for (const auto& plant_memory_str : plant_memory_str_list) {
-        if (plant_memory_str.size() == 0) {
+    std::vector<QString> data_type_set = {"int", "float", "bool", "short",
+        "byte"};
+
+    for (const auto& memory_str : memory_str_list) {
+        if (memory_str.size() == 0) {
             continue;
         }
-        auto plant_memory = plant_memory_str.split(",");
-        memory_dict.name = plant_memory[0];
-        memory_dict.address = plant_memory[1].toInt();
-        memory_dict.data_type = plant_memory[2].toInt();
-        plant_memory_dict.push_back(memory_dict);
+        auto memory = memory_str.split(",");
+        if (std::find(data_type_set.begin(), data_type_set.end(), memory[2]) == data_type_set.end()) {
+            QMessageBox::information(this, "è­¦å‘Š",
+                "å†…å­˜æ ‡ç­¾: " + memory[0] + " ä¸­çš„åœ°å€ç±»å‹ä¸º : " + memory[2] + "ä¸æ˜¯ ShowMe æ”¯æŒçš„è¯»å–ç±»å‹ï¼Œæœ¬è½¯ä»¶ä»…æ”¯æŒ "
+                                                                              "int float bool short byte äº”ç§ç±»å‹çš„è¯»å–");
+            continue;
+        }
+        memory_dict.name = memory[0];
+        memory_dict.address = memory[1].toInt();
+        memory_dict.data_type = memory[2];
+        memory_dict_ptr->push_back(memory_dict);
     }
 
     const int COL_CNT = 4;
     auto widget = new QWidget;
     auto grid_layout = new QGridLayout;
     CheckBoxWithIndex* check_box;
-    for (int cnt = 0; cnt < plant_memory_dict.size(); ++cnt) {
-        check_box = new CheckBoxWithIndex(plant_memory_dict[cnt].name, cnt);
+    for (int cnt = 0; cnt < memory_dict_ptr->size(); ++cnt) {
+        check_box = new CheckBoxWithIndex((*memory_dict_ptr)[cnt].name, cnt);
         connect(check_box, &QCheckBox::stateChanged, [=]() {
             if (check_box->isChecked()) {
-                this->plant_dict_index.push_back(check_box->getIndex());
+                dict_index_ptr->push_back(check_box->getIndex());
             } else {
-                auto iter = std::find(this->plant_dict_index.begin(), this->plant_dict_index.end(), check_box->getIndex());
-
-                if (iter != this->plant_dict_index.end()) {
-                    this->plant_dict_index.erase(iter);
+                auto iter = std::find(dict_index_ptr->begin(), dict_index_ptr->end(),
+                    check_box->getIndex());
+                if (iter != dict_index_ptr->end()) {
+                    dict_index_ptr->erase(iter);
                 }
             }
         });
-        this->plant_box_vec.push_back(check_box);
+        state_box_vec_ptr->push_back(check_box);
         grid_layout->addWidget(check_box, cnt / COL_CNT, cnt % COL_CNT);
     }
-
-    auto cancel_all_btn = new QPushButton("È¡ÏûËùÓĞÑ¡Ôñ");
-    connect(cancel_all_btn, &QPushButton::released, [=]() {
-        auto tmp = this->plant_dict_index;
-        for (const auto& index : tmp) {
-            plant_box_vec[index]->setChecked(false);
-        }
-    });
-
-    grid_layout->addWidget(cancel_all_btn);
-
     widget->setLayout(grid_layout);
     return widget;
 }
 
-QWidget* ShowMe::creatZombiePage()
+QWidget* ShowMe::createTypePage(int object_type)
 {
-    // ¶ÁÈ¡ memory_dict.ini ÎÄ¼ş»ñÈ¡¶ÁÈ¡ÁĞ±í
-    QSettings settings("./ini/memory_dict.ini", QSettings::IniFormat);
-    settings.setIniCodec(QTextCodec::codecForName("utf-8"));
-    QString zombie_memory_dict_str = settings.value("zombie_memory").toString();
-    auto zombie_memory_str_list = zombie_memory_dict_str.split("|");
+    std::set<int>* type_set_ptr;
+    std::vector<CheckBoxWithIndex*>* type_box_vec_ptr;
+    const std::vector<QString>* type_name_vec_ptr;
 
-    MemoryDict memory_dict;
-    for (const auto& zombie_memory_str : zombie_memory_str_list) {
-        if (zombie_memory_str.size() == 0) {
-            continue;
-        }
-        auto zombie_memory = zombie_memory_str.split(",");
-        memory_dict.name = zombie_memory[0];
-        memory_dict.address = zombie_memory[1].toInt();
-        memory_dict.data_type = zombie_memory[2].toInt();
-        zombie_memory_dict.push_back(memory_dict);
+    switch (object_type) {
+    case PLANT:
+        type_set_ptr = &this->plant_type_set;
+        type_name_vec_ptr = &PLANT_NAME;
+        type_box_vec_ptr = &this->plant_type_box_vec;
+        break;
+
+    default:
+        type_set_ptr = &this->zombie_type_set;
+        type_name_vec_ptr = &ZOMBIE_NAME;
+        type_box_vec_ptr = &this->zombie_type_box_vec;
+        break;
     }
+
     const int COL_CNT = 4;
     auto widget = new QWidget;
     auto grid_layout = new QGridLayout;
     CheckBoxWithIndex* check_box;
-    for (int cnt = 0; cnt < zombie_memory_dict.size(); ++cnt) {
-        check_box = new CheckBoxWithIndex(zombie_memory_dict[cnt].name, cnt);
+    for (int cnt = 0; cnt < type_name_vec_ptr->size(); ++cnt) {
+        check_box = new CheckBoxWithIndex((*type_name_vec_ptr)[cnt], cnt);
         connect(check_box, &QCheckBox::stateChanged, [=]() {
             if (check_box->isChecked()) {
-                this->zombie_dict_index.push_back(check_box->getIndex());
+                type_set_ptr->insert(check_box->getIndex());
             } else {
-                auto iter = std::find(this->zombie_dict_index.begin(), this->zombie_dict_index.end(), check_box->getIndex());
-
-                if (iter != this->zombie_dict_index.end()) {
-                    this->zombie_dict_index.erase(iter);
+                auto iter = type_set_ptr->find(check_box->getIndex());
+                if (iter != type_set_ptr->end()) {
+                    type_set_ptr->erase(iter);
                 }
             }
         });
-        this->zombie_box_vec.push_back(check_box);
+        type_box_vec_ptr->push_back(check_box);
         grid_layout->addWidget(check_box, cnt / COL_CNT, cnt % COL_CNT);
     }
-
-    auto cancel_all_btn = new QPushButton("È¡ÏûËùÓĞÑ¡Ôñ");
-    connect(cancel_all_btn, &QPushButton::released, [=]() {
-        auto tmp = this->zombie_dict_index;
-        for (const auto& index : tmp) {
-            zombie_box_vec[index]->setChecked(false);
-        }
-    });
-
-    grid_layout->addWidget(cancel_all_btn);
 
     widget->setLayout(grid_layout);
     return widget;
 }
 
-QWidget* ShowMe::creatOtherPage()
+QWidget* ShowMe::createObjectPage(int object_type)
+{
+    std::vector<CheckBoxWithIndex*>* type_box_vec_ptr;
+    std::vector<CheckBoxWithIndex*>* state_box_vec_ptr;
+
+    switch (object_type) {
+    case PLANT:
+        state_box_vec_ptr = &this->plant_state_box_vec;
+        type_box_vec_ptr = &this->plant_type_box_vec;
+        break;
+
+    default:
+        state_box_vec_ptr = &this->zombie_state_box_vec;
+        type_box_vec_ptr = &this->zombie_type_box_vec;
+        break;
+    }
+    auto widget = new QWidget;
+    auto tab_widget_ = new QTabWidget;
+
+    auto state_widget = createStatePage(object_type);
+    auto type_widget = createTypePage(object_type);
+
+    tab_widget_->addTab(state_widget, "çŠ¶æ€");
+    tab_widget_->addTab(type_widget, "ç±»å‹");
+
+    state_widget->show();
+    type_widget->hide();
+
+    auto select_all_btn = new QPushButton("å…¨éƒ¨é€‰æ‹©");
+    auto cancel_all_btn = new QPushButton("å…¨éƒ¨å–æ¶ˆ");
+
+    connect(select_all_btn, &QPushButton::released, [=]() {
+        std::vector<CheckBoxWithIndex*>* box_vec_ptr;
+        if (tab_widget_->currentIndex() == 0) {
+            box_vec_ptr = state_box_vec_ptr;
+        } else {
+            box_vec_ptr = type_box_vec_ptr;
+        }
+
+        for (auto box_ptr : (*box_vec_ptr)) {
+            box_ptr->setChecked(true);
+        }
+    });
+
+    connect(cancel_all_btn, &QPushButton::released, [=]() {
+        std::vector<CheckBoxWithIndex*>* box_vec_ptr;
+        if (tab_widget_->currentIndex() == 0) {
+            box_vec_ptr = state_box_vec_ptr;
+        } else {
+            box_vec_ptr = type_box_vec_ptr;
+        }
+
+        for (auto box_ptr : (*box_vec_ptr)) {
+            box_ptr->setChecked(false);
+        }
+    });
+
+    auto h_layout = new QHBoxLayout;
+    h_layout->addStretch();
+    h_layout->addWidget(select_all_btn);
+    h_layout->addStretch();
+    h_layout->addWidget(cancel_all_btn);
+    h_layout->addStretch();
+
+    auto v_layout = new QVBoxLayout;
+    v_layout->addWidget(tab_widget_);
+    v_layout->addLayout(h_layout);
+    widget->setLayout(v_layout);
+    return widget;
+}
+
+QWidget* ShowMe::createMutexPage()
+{
+    auto h_layout = new QHBoxLayout;
+    this->plant_mutex_table = new MutexWidget;
+    this->zombie_mutex_table = new MutexWidget;
+    this->plant_mutex_table->setColumnCount(3);
+    this->zombie_mutex_table->setColumnCount(3);
+    this->plant_mutex_table->setRowCount(0);
+    this->zombie_mutex_table->setRowCount(0);
+
+    QStringList header_lists;
+    header_lists << "æ¤ç‰©ç¼–å·"
+                 << "ç±»å‹"
+                 << "ä½ç½®";
+
+    this->plant_mutex_table->setHorizontalHeaderLabels(header_lists);
+    header_lists[0] = "åƒµå°¸ç¼–å·";
+    this->zombie_mutex_table->setHorizontalHeaderLabels(header_lists);
+    this->plant_mutex_table->horizontalHeader()->setSectionResizeMode(
+        QHeaderView::Stretch);
+    this->zombie_mutex_table->horizontalHeader()->setSectionResizeMode(
+        QHeaderView::Stretch);
+
+    h_layout->addWidget(this->plant_mutex_table);
+    h_layout->addWidget(this->zombie_mutex_table);
+
+    auto wigdet = new QWidget;
+    wigdet->setLayout(h_layout);
+    connect(plant_mutex_table, &MutexWidget::rowChanged, [=]() {
+        int raw_count = plant_mutex_table->rowCount();
+        while (this->mutex_plant_info_widget_vec.size() > raw_count) {
+            delete this->mutex_plant_info_widget_vec
+                [this->mutex_plant_info_widget_vec.size() - 1];
+            mutex_plant_info_widget_vec.pop_back();
+        }
+
+        while (this->mutex_plant_info_widget_vec.size() < raw_count) {
+            mutex_plant_info_widget_vec.push_back(new InfoWidget);
+        }
+    });
+
+    connect(zombie_mutex_table, &MutexWidget::rowChanged, [=]() {
+        int raw_count = zombie_mutex_table->rowCount();
+        while (this->mutex_zombie_info_widget_vec.size() > raw_count) {
+            delete this->mutex_zombie_info_widget_vec
+                [this->mutex_zombie_info_widget_vec.size() - 1];
+            mutex_zombie_info_widget_vec.pop_back();
+        }
+
+        while (this->mutex_zombie_info_widget_vec.size() < raw_count) {
+            mutex_zombie_info_widget_vec.push_back(new InfoWidget);
+        }
+    });
+
+    return wigdet;
+}
+
+QWidget* ShowMe::createOtherPage()
 {
     const std::vector<QString> label_text_vec = {
-        "Ö²ÎïÕ»Î» : ",
-        "½©Ê¬Õ»Î» : ",
-        "±ùµÀ×ø±ê : ",
-        "Ë¢ĞÂµ¹¼ÆÊ± : ",
-        "´ó²¨Ë¢ĞÂµ¹¼ÆÊ± : ",
-        "Ë¢ĞÂÑªÁ¿ : ",
-        "µ±Ç°²¨Êı : ",
-        "ÓÎÏ·Ê±ÖÓ : ",
+        "æ¤ç‰©æ ˆä½ : ",
+        "åƒµå°¸æ ˆä½ : ",
+        "å†°é“åæ ‡ : ",
+        "åˆ·æ–°å€’è®¡æ—¶ : ",
+        "å¤§æ³¢åˆ·æ–°å€’è®¡æ—¶ : ",
+        "åˆ·æ–°è¡€é‡ : ",
+        "å½“å‰æ³¢æ•° : ",
+        "æ¸¸æˆæ—¶é’Ÿ : ",
     };
 
-    // ½«ËùÓĞµÄÏÔÊ¾ÄÚÈİ¼ÓÒ»¸ö±êÇ©
+    // å°†æ‰€æœ‰çš„æ˜¾ç¤ºå†…å®¹åŠ ä¸€ä¸ªæ ‡ç­¾
     for (const auto& tip : label_text_vec) {
-        auto h_layout = new QHBoxLayout;
         auto label_type = new HLayoutPair<QLabel, QLabel>;
         label_type->first.setText(tip);
         this->label_vec.push_back(label_type);
     }
 
-    // ½øĞĞÒ³Ãæ²¼¾Ö
+    // è¿›è¡Œé¡µé¢å¸ƒå±€
     auto grid_layout = new QGridLayout;
     for (int i = 3; i < this->label_vec.size(); ++i) {
         grid_layout->addWidget(this->label_vec[i], (i - 1) / 2, (i - 1) % 2);
     }
 
-    auto refresh_box = new QGroupBox("Ë¢ĞÂÏà¹Ø");
+    auto refresh_box = new QGroupBox("åˆ·æ–°ç›¸å…³");
     refresh_box->setLayout(grid_layout);
 
     auto v_layout = new QVBoxLayout;
@@ -232,7 +543,7 @@ QWidget* ShowMe::creatOtherPage()
         v_layout->addWidget(this->label_vec[i]);
     }
 
-    auto stack_ice_box = new QGroupBox("Õ»Î»¼°±ùµÀ");
+    auto stack_ice_box = new QGroupBox("æ ˆä½åŠå†°é“");
     stack_ice_box->setLayout(v_layout);
 
     auto total_layout = new QVBoxLayout;
@@ -244,29 +555,67 @@ QWidget* ShowMe::creatOtherPage()
     return widget;
 }
 
-QWidget* ShowMe::creatSettingsPage()
+QWidget* ShowMe::createObjectSettingsPage()
 {
-    // È«¾Ö
+    this->object_box = new HLayoutPair<QLabel, QComboBox>;
+    this->object_box->first.setText("å¯¹è±¡ : ");
+    this->object_box->second.addItem("æ¤ç‰©");
+    this->object_box->second.addItem("åƒµå°¸");
+    this->find_threshold_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
+    this->find_threshold_box->first.setText("æœç´¢é˜ˆå€¼ : ");
+    this->find_threshold_box->second.setMinimum(0);
+    this->type_box = new HLayoutPair<QLabel, QComboBox>;
+    this->type_box->first.setText("ç±»å‹ : ");
+    this->state_box = new HLayoutPair<QLabel, QSpinBox>;
+    this->state_box->first.setText("çŠ¶æ€ : ");
+    this->state_box->second.setMaximum(0xffff);
+    this->state_box->second.setMinimum(0);
+    this->offset_x_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
+    this->offset_x_box->first.setText("X åç§» : ");
+    this->offset_x_box->second.setMinimum(-100);
+    this->offset_y_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
+    this->offset_y_box->first.setText("Y åç§» : ");
+    this->offset_y_box->second.setMinimum(-100);
+    this->save_btn = new HLayoutPair<QLabel, QPushButton>;
+    this->save_btn->second.setText("ä¿å­˜ä¿®æ”¹");
+
+    auto grid_layout = new QGridLayout;
+
+    grid_layout->addWidget(this->object_box, 0, 0);
+    grid_layout->addWidget(this->find_threshold_box, 1, 0);
+    grid_layout->addWidget(this->type_box, 1, 1);
+    grid_layout->addWidget(this->state_box, 2, 0);
+    grid_layout->addWidget(this->offset_x_box, 2, 1);
+    grid_layout->addWidget(this->offset_y_box, 3, 0);
+    grid_layout->addWidget(this->save_btn, 3, 1);
+
+    auto group_box = new QGroupBox("å¯¹è±¡");
+    group_box->setLayout(grid_layout);
+    return group_box;
+}
+
+QWidget* ShowMe::createGlobalSettingsPage()
+{
     this->update_interval_box = new HLayoutPair<QLabel, QSpinBox>;
-    this->update_interval_box->first.setText("Ë¢ĞÂ¼ä¸ô(ms) : ");
+    this->update_interval_box->first.setText("åˆ·æ–°é—´éš”(ms) : ");
     this->update_interval_box->second.setMinimum(0);
     this->update_interval_box->second.setMaximum(10000);
     this->opacity_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->opacity_box->first.setText("Í¸Ã÷¶È: ");
+    this->opacity_box->first.setText("é€æ˜åº¦: ");
     this->opacity_box->second.setMinimum(0);
     this->opacity_box->second.setMaximum(1);
     const std::vector<QString> INFO_FONT_TIP_VEC = {
-        "Ö²Îï×ÖÌå : ",
-        "½©Ê¬×ÖÌå : ",
-        "¿¨²Û×ÖÌå : ",
-        "ºË¿Ó×ÖÌå : ",
+        "æ¤ç‰©å­—ä½“ : ",
+        "åƒµå°¸å­—ä½“ : ",
+        "å¡æ§½å­—ä½“ : ",
+        "æ ¸å‘å­—ä½“ : ",
     };
 
     const std::vector<QString> INFO_COLOR_TIP_VEC = {
-        "Ö²ÎïÑÕÉ« : ",
-        "½©Ê¬ÑÕÉ« : ",
-        "¿¨²ÛÑÕÉ« : ",
-        "ºË¿ÓÑÕÉ« : ",
+        "æ¤ç‰©é¢œè‰² : ",
+        "åƒµå°¸é¢œè‰² : ",
+        "å¡æ§½é¢œè‰² : ",
+        "æ ¸å‘é¢œè‰² : ",
     };
 
     auto global_layout = new QGridLayout;
@@ -287,89 +636,61 @@ QWidget* ShowMe::creatSettingsPage()
         info_widget_vec.push_back(new InfoWidget);
     }
 
-    auto global_box = new QGroupBox("È«¾Ö");
+    auto global_box = new QGroupBox("å…¨å±€");
     global_box->setLayout(global_layout);
 
-    // Ö²Îï
-    this->plant_find_threshold_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->plant_find_threshold_box->first.setText("ËÑË÷ãĞÖµ : ");
-    this->plant_find_threshold_box->second.setMinimum(0);
-    this->plant_type_box = new HLayoutPair<QLabel, QComboBox>;
-    this->plant_type_box->first.setText("ÀàĞÍ : ");
-    this->plant_state_box = new HLayoutPair<QLabel, QSpinBox>;
-    this->plant_state_box->first.setText("×´Ì¬ : ");
-    this->plant_state_box->second.setMaximum(0xffff);
-    this->plant_state_box->second.setMinimum(0);
-    this->plant_offset_x_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->plant_offset_x_box->first.setText("X Æ«ÒÆ : ");
-    this->plant_offset_x_box->second.setMinimum(-100);
-    this->plant_offset_y_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->plant_offset_y_box->first.setText("Y Æ«ÒÆ : ");
-    this->plant_offset_y_box->second.setMinimum(-100);
-    this->plant_save_btn = new HLayoutPair<QLabel, QPushButton>;
-    this->plant_save_btn->second.setText("±£´æĞŞ¸Ä");
+    return global_box;
+}
 
-    auto plant_layout = new QGridLayout;
-    plant_layout->addWidget(this->plant_find_threshold_box, 0, 0);
-    plant_layout->addWidget(this->plant_type_box, 0, 1);
-    plant_layout->addWidget(this->plant_state_box, 1, 0);
-    plant_layout->addWidget(this->plant_offset_x_box, 1, 1);
-    plant_layout->addWidget(this->plant_offset_y_box, 2, 0);
-    plant_layout->addWidget(this->plant_save_btn, 2, 1);
-
-    auto plant_box = new QGroupBox("Ö²Îï");
-    plant_box->setLayout(plant_layout);
-
-    // ½©Ê¬
-    this->zombie_find_threshold_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->zombie_find_threshold_box->first.setText("ËÑË÷ãĞÖµ : ");
-    this->zombie_find_threshold_box->second.setMinimum(0);
-    this->zombie_type_box = new HLayoutPair<QLabel, QComboBox>;
-    this->zombie_type_box->first.setText("ÀàĞÍ : ");
-    this->zombie_state_box = new HLayoutPair<QLabel, QSpinBox>;
-    this->zombie_state_box->first.setText("×´Ì¬ : ");
-    this->zombie_state_box->second.setMaximum(0xffff);
-    this->zombie_state_box->second.setMinimum(0);
-    this->zombie_offset_x_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->zombie_offset_x_box->first.setText("X Æ«ÒÆ : ");
-    this->zombie_offset_x_box->second.setMinimum(-100);
-    this->zombie_offset_y_box = new HLayoutPair<QLabel, QDoubleSpinBox>;
-    this->zombie_offset_y_box->first.setText("Y Æ«ÒÆ : ");
-    this->zombie_offset_y_box->second.setMinimum(-100);
-    this->zombie_save_btn = new HLayoutPair<QLabel, QPushButton>;
-    this->zombie_save_btn->second.setText("±£´æĞŞ¸Ä");
-
-    auto zombie_layout = new QGridLayout;
-    zombie_layout->addWidget(this->zombie_find_threshold_box, 0, 0);
-    zombie_layout->addWidget(this->zombie_type_box, 0, 1);
-    zombie_layout->addWidget(this->zombie_state_box, 1, 0);
-    zombie_layout->addWidget(this->zombie_offset_x_box, 1, 1);
-    zombie_layout->addWidget(this->zombie_offset_y_box, 2, 0);
-    zombie_layout->addWidget(this->zombie_save_btn, 2, 1);
-
-    auto zombie_box = new QGroupBox("½©Ê¬");
-    zombie_box->setLayout(zombie_layout);
-
+QWidget* ShowMe::createSettingsPage()
+{
     auto total_layout = new QVBoxLayout;
-    total_layout->addWidget(global_box);
-    total_layout->addWidget(plant_box);
-    total_layout->addWidget(zombie_box);
+    total_layout->addWidget(createGlobalSettingsPage());
+    total_layout->addWidget(createObjectSettingsPage());
     auto widget = new QWidget(this);
     widget->setLayout(total_layout);
     return widget;
 }
 
-void ShowMe::connectSettingsPage()
+void ShowMe::createStatusBar()
 {
-    // È«¾Ö
-    connect(&this->update_interval_box->second, (void (QSpinBox::*)(int))(&QSpinBox::valueChanged), [=](int value) {
-        timer->setInterval(value);
-    });
+    // çŠ¶æ€æ 
+    auto author_label = new ClickLabel;
+    author_label->setText("Made by vector-wlc");
+    auto msvc_label = new ClickLabel;
+    msvc_label->setText("   Build by MSVC2019");
+    auto qt_label = new ClickLabel;
+    qt_label->setText("and Qt 5.14.2");
 
-    connect(&this->opacity_box->second, (void (QDoubleSpinBox::*)(double))(&QDoubleSpinBox::valueChanged), [=](double value) {
-        for (auto& info_widget : this->info_widget_vec)
-            info_widget->setWindowOpacity(value);
+    this->statusBar()->addWidget(author_label);
+    this->statusBar()->addWidget(msvc_label);
+    this->statusBar()->addWidget(qt_label);
+
+    connect(author_label, &ClickLabel::clicked, [=]() {
+        QDesktopServices::openUrl(
+            QUrl(QString("https://github.com/vector-wlc/ShowMe")));
     });
+    connect(msvc_label, &ClickLabel::clicked, [=]() {
+        QDesktopServices::openUrl(
+            QUrl(QString("https://visualstudio.microsoft.com")));
+    });
+    connect(qt_label, &ClickLabel::clicked, [=]() {
+        QDesktopServices::openUrl(QUrl(QString("https://www.qt.io/")));
+    });
+}
+
+void ShowMe::connectGlobalSettings()
+{
+    connect(&this->update_interval_box->second,
+        (void (QSpinBox::*)(int))(&QSpinBox::valueChanged),
+        [=](int value) { timer->setInterval(value); });
+
+    connect(&this->opacity_box->second,
+        (void (QDoubleSpinBox::*)(double))(&QDoubleSpinBox::valueChanged),
+        [=](double value) {
+            for (auto& info_widget : this->info_widget_vec)
+                info_widget->setWindowOpacity(value);
+        });
 
     for (int i = 0; i < this->info_font_btn_vec.size(); ++i) {
         connect(&this->info_font_btn_vec[i]->second, &QPushButton::released, [=]() {
@@ -382,86 +703,90 @@ void ShowMe::connectSettingsPage()
     }
 
     for (int i = 0; i < this->info_color_btn_vec.size(); ++i) {
-        connect(&this->info_color_btn_vec[i]->second, &QPushButton::released, [=]() {
-            bool ok;
-            this->info_color_vec[i] = QColorDialog::getColor(this->info_color_vec[i], this);
-            this->info_widget_vec[i]->setColor(this->info_color_vec[i]);
-            QPalette palette = this->info_color_btn_vec[i]->second.palette();
-            palette.setColor(QPalette::Button, this->info_color_vec[i]);
-            this->info_color_btn_vec[i]->second.setPalette(palette);
-            this->info_color_btn_vec[i]->second.setAutoFillBackground(true);
-            this->info_color_btn_vec[i]->second.setFlat(true);
+        connect(&this->info_color_btn_vec[i]->second, &QPushButton::released,
+            [=]() {
+                this->info_color_vec[i] = QColorDialog::getColor(this->info_color_vec[i], this);
+                this->info_widget_vec[i]->setColor(this->info_color_vec[i]);
+                QPalette palette = this->info_color_btn_vec[i]->second.palette();
+                palette.setColor(QPalette::Button, this->info_color_vec[i]);
+                this->info_color_btn_vec[i]->second.setPalette(palette);
+                this->info_color_btn_vec[i]->second.setAutoFillBackground(true);
+                this->info_color_btn_vec[i]->second.setFlat(true);
+            });
+    }
+}
+
+void ShowMe::setObjectSettingsPage(int object_type)
+{
+    switch (object_type) {
+    case PLANT:
+        this->object_name_ptr = &PLANT_NAME;
+        this->object_offset_dict_ptr = &plant_offset_dict;
+        this->object_find_threshold_ptr = &plant_find_threshold;
+        break;
+
+    default:
+        this->object_name_ptr = &ZOMBIE_NAME;
+        this->object_offset_dict_ptr = &zombie_offset_dict;
+        this->object_find_threshold_ptr = &zombie_find_threshold;
+        break;
+    }
+
+    this->type_box->second.clear();
+    for (const auto& name : *this->object_name_ptr) {
+        this->type_box->second.addItem(name);
+    }
+    this->find_threshold_box->second.setValue(*object_find_threshold_ptr);
+}
+
+void ShowMe::connectObjectSettings()
+{
+    setObjectSettingsPage(PLANT);
+    auto& object_offset_map = (*this->object_offset_dict_ptr)[0];
+    auto iter = object_offset_map.begin();
+    this->state_box->second.setValue(iter->first);
+    this->offset_x_box->second.setValue(iter->second.x);
+    this->offset_y_box->second.setValue(iter->second.y);
+
+    connect(&this->object_box->second,
+        (void (QComboBox::*)(int))(&QComboBox::currentIndexChanged),
+        [=](int object_type) { setObjectSettingsPage(object_type); });
+
+    connect(&this->find_threshold_box->second,
+        (void (QDoubleSpinBox::*)(double))(&QDoubleSpinBox::valueChanged),
+        [=](double value) {
+            *this->object_find_threshold_ptr = this->find_threshold_box->second.value();
         });
-    }
 
-    // Ö²Îï
-    for (const auto& name : PLANT_NAME) {
-        this->plant_type_box->second.addItem(name);
-    }
+    connect(&this->type_box->second,
+        (void (QComboBox::*)(int))(&QComboBox::currentIndexChanged),
+        [=](int index) {
+            if (index < 0) {
+                return;
+            }
+            auto& object_offset_map = (*this->object_offset_dict_ptr)[index];
+            auto iter = object_offset_map.begin();
+            this->state_box->second.setValue(iter->first);
+            this->offset_x_box->second.setValue(iter->second.x);
+            this->offset_y_box->second.setValue(iter->second.y);
+        });
 
-    auto& plant_offset_map = plant_offset_dict[0];
-    auto iter = plant_offset_map.begin();
-    this->plant_state_box->second.setValue(iter->first);
-    this->plant_offset_x_box->second.setValue(iter->second.x);
-    this->plant_offset_y_box->second.setValue(iter->second.y);
+    connect(&this->state_box->second,
+        (void (QSpinBox::*)(int))(&QSpinBox::valueChanged), [=](int state) {
+            auto& object_offset_map = (*this->object_offset_dict_ptr)[this->type_box->second
+                                                                          .currentIndex()];
+            auto iter = object_offset_map.find(state);
+            if (iter != object_offset_map.end()) {
+                this->offset_x_box->second.setValue(iter->second.x);
+                this->offset_y_box->second.setValue(iter->second.y);
+            }
+        });
 
-    connect(&this->plant_type_box->second, (void (QComboBox::*)(int))(&QComboBox::currentIndexChanged), [=](int index) {
-        auto& plant_offset_map = plant_offset_dict[index];
-        auto iter = plant_offset_map.begin();
-        this->plant_state_box->second.setValue(iter->first);
-        this->plant_offset_x_box->second.setValue(iter->second.x);
-        this->plant_offset_y_box->second.setValue(iter->second.y);
-    });
-
-    connect(&this->plant_state_box->second, (void (QSpinBox::*)(int))(&QSpinBox::valueChanged), [=](int state) {
-        auto& plant_offset_map = plant_offset_dict[this->plant_type_box->second.currentIndex()];
-        auto iter = plant_offset_map.find(state);
-        if (iter != plant_offset_map.end()) {
-            this->plant_offset_x_box->second.setValue(iter->second.x);
-            this->plant_offset_y_box->second.setValue(iter->second.y);
-        }
-    });
-
-    connect(&this->plant_save_btn->second, &QPushButton::released, [=]() {
-        auto& plant_offset_map = plant_offset_dict[this->plant_type_box->second.currentIndex()];
-        auto& offset = plant_offset_map[this->plant_state_box->second.value()];
-        offset.x = this->plant_offset_x_box->second.value();
-        offset.y = this->plant_offset_y_box->second.value();
-    });
-
-    // ½©Ê¬
-    for (const auto& name : ZOMBIE_NAME) {
-        this->zombie_type_box->second.addItem(name);
-    }
-
-    auto& zombie_offset_map = zombie_offset_dict[0];
-    iter = zombie_offset_map.begin();
-    this->zombie_state_box->second.setValue(iter->first);
-    this->zombie_offset_x_box->second.setValue(iter->second.x);
-    this->zombie_offset_y_box->second.setValue(iter->second.y);
-
-    connect(&this->zombie_type_box->second, (void (QComboBox::*)(int))(&QComboBox::currentIndexChanged), [=](int index) {
-        auto& zombie_offset_map = zombie_offset_dict[index];
-        auto iter = zombie_offset_map.begin();
-        this->zombie_state_box->second.setValue(iter->first);
-        this->zombie_offset_x_box->second.setValue(iter->second.x);
-        this->zombie_offset_y_box->second.setValue(iter->second.y);
-    });
-
-    connect(&this->zombie_state_box->second, (void (QSpinBox::*)(int))(&QSpinBox::valueChanged), [=](int state) {
-        auto& zombie_offset_map = zombie_offset_dict[this->zombie_type_box->second.currentIndex()];
-        auto iter = zombie_offset_map.find(state);
-        if (iter != zombie_offset_map.end()) {
-            this->zombie_offset_x_box->second.setValue(iter->second.x);
-            this->zombie_offset_y_box->second.setValue(iter->second.y);
-        }
-    });
-
-    connect(&this->zombie_save_btn->second, &QPushButton::released, [=]() {
-        auto& zombie_offset_map = zombie_offset_dict[this->zombie_type_box->second.currentIndex()];
-        auto& offset = zombie_offset_map[this->zombie_state_box->second.value()];
-        offset.x = this->zombie_offset_x_box->second.value();
-        offset.y = this->zombie_offset_y_box->second.value();
+    connect(&this->save_btn->second, &QPushButton::released, [=]() {
+        auto& object_offset_map = (*this->object_offset_dict_ptr)[this->type_box->second.currentIndex()];
+        auto& offset = object_offset_map[this->state_box->second.value()];
+        offset.x = this->offset_x_box->second.value();
+        offset.y = this->offset_y_box->second.value();
     });
 }
 
@@ -482,112 +807,123 @@ const std::vector<QString> KEY_INFO_COLOR_TIP_VEC = {
     "crater_color",
 };
 
-const QString KEY_PLANT_PAGE = "plant_page";
-const QString KEY_ZOMBIE_PAGE = "zombie_page";
+const QString KEY_PLANT_STATE = "plant_state";
+const QString KEY_ZOMBIE_STATE = "zombie_state";
+const QString KEY_PLANT_TYPE = "plant_type";
+const QString KEY_ZOMBIE_TYPE = "zombie_type";
 const QString KEY_PLANT_FIND_THRESHOLD = "plant_find_threshold";
 const QString KEY_ZOMBIE_FIND_THRESHOLD = "zombie_find_threshold";
 const QString KEY_PLANT_OFFSET_DICT = "plant_offset_dict";
 const QString KEY_ZOMBIE_OFFSET_DICT = "zombie_offset_dict";
 
-void ShowMe::saveSettings()
+void ShowMe::saveGlobalSettings(QSettings& settings)
 {
-    QSettings settings("./ini/settings.ini", QSettings::IniFormat);
-    settings.setIniCodec(QTextCodec::codecForName("utf-8"));
-
-    // Ö²ÎïÒ³Ãæ
-    settings.beginGroup("plant_page");
-    QString plant_page_str;
-    for (const auto& index : this->plant_dict_index) {
-        plant_page_str += QString("%1,").arg(index);
-    }
-    settings.setValue(KEY_PLANT_PAGE, plant_page_str);
-    settings.endGroup();
-
-    // ½©Ê¬Ò³Ãæ
-    settings.beginGroup("zombie_page");
-    QString zombie_page_str;
-    for (const auto& index : this->zombie_dict_index) {
-        zombie_page_str += QString("%1,").arg(index);
-    }
-    settings.setValue(KEY_ZOMBIE_PAGE, zombie_page_str);
-    settings.endGroup();
-
-    // È«¾Ö
     settings.beginGroup("global");
-    settings.setValue(KEY_UPDATE_INTERVAL, this->update_interval_box->second.value());
+    settings.setValue(KEY_UPDATE_INTERVAL,
+        this->update_interval_box->second.value());
     settings.setValue(KEY_OPACITY, this->opacity_box->second.value());
 
     for (int i = 0; i < this->info_font_vec.size(); ++i) {
-        settings.setValue(KEY_INFO_FONT_TIP_VEC[i], QVariant::fromValue(this->info_font_vec[i]));
-        settings.setValue(KEY_INFO_COLOR_TIP_VEC[i], QVariant::fromValue(this->info_color_vec[i]));
+        settings.setValue(KEY_INFO_FONT_TIP_VEC[i],
+            QVariant::fromValue(this->info_font_vec[i]));
+        settings.setValue(KEY_INFO_COLOR_TIP_VEC[i],
+            QVariant::fromValue(this->info_color_vec[i]));
     }
-    settings.endGroup();
-
-    // Ö²Îï
-    settings.beginGroup("plant");
-    settings.setValue(KEY_PLANT_FIND_THRESHOLD, this->plant_find_threshold_box->second.value());
-    QString plant_offset_str;
-    for (const auto& plant_offset_map : plant_offset_dict) {
-        for (const auto& plant_offset : plant_offset_map) {
-            plant_offset_str += QString("%1,%2,%3|").arg(plant_offset.first).arg(plant_offset.second.x).arg(plant_offset.second.y);
-        }
-        plant_offset_str += "\n";
-    }
-    settings.setValue(KEY_PLANT_OFFSET_DICT, QVariant::fromValue(plant_offset_str));
-    settings.endGroup();
-
-    // ½©Ê¬
-    settings.beginGroup("zombie");
-    settings.setValue(KEY_ZOMBIE_FIND_THRESHOLD, this->zombie_find_threshold_box->second.value());
-
-    QString zombie_offset_str;
-    for (const auto& zombie_offset_map : zombie_offset_dict) {
-        for (const auto& zombie_offset : zombie_offset_map) {
-            zombie_offset_str += QString("%1,%2,%3|").arg(zombie_offset.first).arg(zombie_offset.second.x).arg(zombie_offset.second.y);
-        }
-        zombie_offset_str += "\n";
-    }
-    settings.setValue(KEY_ZOMBIE_OFFSET_DICT, zombie_offset_str);
     settings.endGroup();
 }
 
-void ShowMe::loadSettings()
+void ShowMe::saveObjectPageSettings(QSettings& settings, int object_type)
 {
-    QSettings settings("./ini/settings.ini", QSettings::IniFormat);
-    settings.setIniCodec(QTextCodec::codecForName("utf-8"));
+    QString settings_str;
+    QString key_state_str;
+    QString key_type_str;
+    std::list<int>* object_state_list_ptr;
+    std::set<int>* object_type_set_ptr;
 
-    // Ö²ÎïÒ³Ãæ
-    settings.beginGroup("plant_page");
-    QString plant_page_str = settings.value(KEY_PLANT_PAGE).toString();
-    auto plant_index_str_list = plant_page_str.split(",");
-    for (const auto& index_str : plant_index_str_list) {
-        if (index_str.size() == 0) {
-            continue;
-        }
-        this->plant_box_vec[index_str.toInt()]->setChecked(true);
+    switch (object_type) {
+    case PLANT:
+        settings_str = "plant_page";
+        key_state_str = KEY_PLANT_STATE;
+        key_type_str = KEY_PLANT_TYPE;
+        object_state_list_ptr = &this->plant_state_list;
+        object_type_set_ptr = &this->plant_type_set;
+        break;
+
+    default:
+        settings_str = "zombie_page";
+        key_state_str = KEY_ZOMBIE_STATE;
+        key_type_str = KEY_ZOMBIE_TYPE;
+        object_state_list_ptr = &this->zombie_state_list;
+        object_type_set_ptr = &this->zombie_type_set;
+        break;
     }
-    settings.endGroup();
-
-    // ½©Ê¬Ò³Ãæ
-    settings.beginGroup("zombie_page");
-    QString zombie_page_str = settings.value(KEY_ZOMBIE_PAGE).toString();
-    auto zombie_index_str_list = zombie_page_str.split(",");
-    for (const auto& index_str : zombie_index_str_list) {
-        if (index_str.size() == 0) {
-            continue;
-        }
-        this->zombie_box_vec[index_str.toInt()]->setChecked(true);
+    settings.beginGroup(settings_str);
+    QString state_str;
+    for (const auto& index : *object_state_list_ptr) {
+        state_str += QString("%1,").arg(index);
     }
-    settings.endGroup();
+    settings.setValue(key_state_str, state_str);
 
-    // È«¾Ö
+    QString type_str;
+    for (const auto& index : *object_type_set_ptr) {
+        type_str += QString("%1,").arg(index);
+    }
+    settings.setValue(key_type_str, type_str);
+    settings.endGroup();
+}
+
+void ShowMe::saveObjectSettings(QSettings& settings, int object_type)
+{
+    QString settings_str;
+    QString key_find_thresold_str;
+    QString key_object_offset_dict_str;
+    int object_find_threshold;
+    std::vector<std::map<int, Offset>>* object_offset_dict_ptr;
+
+    switch (object_type) {
+    case PLANT:
+        settings_str = "plant";
+        key_find_thresold_str = KEY_PLANT_FIND_THRESHOLD;
+        key_object_offset_dict_str = KEY_PLANT_OFFSET_DICT;
+        object_offset_dict_ptr = &plant_offset_dict;
+        object_find_threshold = plant_find_threshold;
+        break;
+
+    default:
+        settings_str = "zombie";
+        key_find_thresold_str = KEY_ZOMBIE_FIND_THRESHOLD;
+        key_object_offset_dict_str = KEY_ZOMBIE_OFFSET_DICT;
+        object_offset_dict_ptr = &zombie_offset_dict;
+        object_find_threshold = zombie_find_threshold;
+        break;
+    }
+    settings.beginGroup(settings_str);
+    settings.setValue(key_find_thresold_str, object_find_threshold);
+    QString object_offset_str;
+    for (const auto& object_offset_map : *object_offset_dict_ptr) {
+        for (const auto& object_offset : object_offset_map) {
+            object_offset_str += QString("%1,%2,%3|")
+                                     .arg(object_offset.first)
+                                     .arg(object_offset.second.x)
+                                     .arg(object_offset.second.y);
+        }
+        object_offset_str += "\n";
+    }
+    settings.setValue(key_object_offset_dict_str,
+        QVariant::fromValue(object_offset_str));
+    settings.endGroup();
+}
+
+void ShowMe::loadGlobalSettings(QSettings& settings)
+{
     settings.beginGroup("global");
-    this->update_interval_box->second.setValue(settings.value(KEY_UPDATE_INTERVAL).toInt());
+    this->update_interval_box->second.setValue(
+        settings.value(KEY_UPDATE_INTERVAL).toInt());
     this->opacity_box->second.setValue(settings.value(KEY_OPACITY).toDouble());
 
     QVariant tmp_value;
     for (int i = 0; i < this->info_widget_vec.size(); ++i) {
-        // ×ÖÌå
+        // å­—ä½“
         tmp_value = settings.value(KEY_INFO_FONT_TIP_VEC[i]);
         if (tmp_value.canConvert<QFont>()) {
             this->info_font_vec.push_back(tmp_value.value<QFont>());
@@ -596,7 +932,7 @@ void ShowMe::loadSettings()
         auto font_str = this->info_font_vec[i].family() + QString(", %1").arg(this->info_font_vec[i].pointSize());
         this->info_font_btn_vec[i]->second.setText(font_str);
 
-        // ÑÕÉ«
+        // é¢œè‰²
         tmp_value = settings.value(KEY_INFO_COLOR_TIP_VEC[i]);
         if (tmp_value.canConvert<QColor>()) {
             this->info_color_vec.push_back(tmp_value.value<QColor>());
@@ -609,59 +945,111 @@ void ShowMe::loadSettings()
         this->info_color_btn_vec[i]->second.setFlat(true);
     }
     settings.endGroup();
+}
 
-    // plant
-    settings.beginGroup("plant");
-    this->plant_find_threshold_box->second.setValue(settings.value(KEY_PLANT_FIND_THRESHOLD).toDouble());
-    QString plant_offset_str = settings.value(KEY_PLANT_OFFSET_DICT).toString();
-    auto plant_offset_map_str_list = plant_offset_str.split("\n");
-    Offset offset;
-    int state;
-    plant_offset_dict.clear();
-    for (auto& plant_offset_map_str : plant_offset_map_str_list) {
-        if (plant_offset_map_str.size() == 0) {
+void ShowMe::loadObjectPageSettings(QSettings& settings, int object_type)
+{
+    QString settings_str;
+    QString key_state_str;
+    QString key_type_str;
+    std::list<int>* object_state_list_ptr;
+    std::set<int>* object_type_set_ptr;
+    std::vector<CheckBoxWithIndex*>* object_state_box_vec_ptr;
+    std::vector<CheckBoxWithIndex*>* object_type_box_vec_ptr;
+
+    switch (object_type) {
+    case PLANT:
+        settings_str = "plant_page";
+        key_state_str = KEY_PLANT_STATE;
+        key_type_str = KEY_PLANT_TYPE;
+        object_state_list_ptr = &this->plant_state_list;
+        object_type_set_ptr = &this->plant_type_set;
+        object_state_box_vec_ptr = &this->plant_state_box_vec;
+        object_type_box_vec_ptr = &this->plant_type_box_vec;
+        break;
+
+    default:
+        settings_str = "zombie_page";
+        key_state_str = KEY_ZOMBIE_STATE;
+        key_type_str = KEY_ZOMBIE_TYPE;
+        object_state_list_ptr = &this->zombie_state_list;
+        object_type_set_ptr = &this->zombie_type_set;
+        object_state_box_vec_ptr = &this->zombie_state_box_vec;
+        object_type_box_vec_ptr = &this->zombie_type_box_vec;
+        break;
+    }
+
+    settings.beginGroup(settings_str);
+    QString object_state_str = settings.value(key_state_str).toString();
+    auto object_index_str_list = object_state_str.split(",");
+    for (const auto& index_str : object_index_str_list) {
+        if (index_str.size() == 0) {
             continue;
         }
-        auto plant_offset_str_list = plant_offset_map_str.split("|");
-        std::map<int, Offset> plant_offset_map;
-        for (auto& plant_offset_str : plant_offset_str_list) {
-            if (plant_offset_str.size() == 0) {
-                continue;
-            }
-            auto plant_offset_list = plant_offset_str.split(",");
-            state = plant_offset_list[0].toInt();
-            offset.x = plant_offset_list[1].toFloat();
-            offset.y = plant_offset_list[2].toFloat();
-            plant_offset_map.insert({state, offset});
+        (*object_state_box_vec_ptr)[index_str.toInt()]->setChecked(true);
+    }
+
+    QString object_type_str = settings.value(key_type_str).toString();
+    object_index_str_list = object_type_str.split(",");
+    for (const auto& index_str : object_index_str_list) {
+        if (index_str.size() == 0) {
+            continue;
         }
-        plant_offset_dict.push_back(plant_offset_map);
+        (*object_type_box_vec_ptr)[index_str.toInt()]->setChecked(true);
     }
     settings.endGroup();
+}
 
-    // zombie
-    settings.beginGroup("zombie");
-    this->zombie_find_threshold_box->second.setValue(settings.value(KEY_ZOMBIE_FIND_THRESHOLD).toDouble());
-    QString zombie_offset_str = settings.value(KEY_ZOMBIE_OFFSET_DICT).toString();
-    auto zombie_offset_map_str_list = zombie_offset_str.split("\n");
-    zombie_offset_dict.clear();
-    for (auto& zombie_offset_map_str : zombie_offset_map_str_list) {
-        if (zombie_offset_map_str.size() == 0) {
+void ShowMe::loadObjectSettings(QSettings& settings, int object_type)
+{
+    QString settings_str;
+    QString key_find_thresold_str;
+    QString key_object_offset_dict_str;
+    std::vector<std::map<int, Offset>>* object_offset_dict_ptr;
+
+    switch (object_type) {
+    case PLANT:
+        settings_str = "plant";
+        key_find_thresold_str = KEY_PLANT_FIND_THRESHOLD;
+        key_object_offset_dict_str = KEY_PLANT_OFFSET_DICT;
+        object_offset_dict_ptr = &plant_offset_dict;
+        object_find_threshold_ptr = &this->plant_find_threshold;
+        break;
+
+    default:
+        settings_str = "zombie";
+        key_find_thresold_str = KEY_ZOMBIE_FIND_THRESHOLD;
+        key_object_offset_dict_str = KEY_ZOMBIE_OFFSET_DICT;
+        object_offset_dict_ptr = &zombie_offset_dict;
+        object_find_threshold_ptr = &this->zombie_find_threshold;
+        break;
+    }
+    settings.beginGroup(settings_str);
+    *object_find_threshold_ptr = settings.value(key_find_thresold_str).toDouble();
+    this->find_threshold_box->second.setValue(*object_find_threshold_ptr);
+
+    QString object_offset_str = settings.value(key_object_offset_dict_str).toString();
+    auto object_offset_map_str_list = object_offset_str.split("\n");
+    Offset offset;
+    int state;
+    object_offset_dict_ptr->clear();
+    for (auto& object_offset_map_str : object_offset_map_str_list) {
+        if (object_offset_map_str.size() == 0) {
             continue;
         }
-        auto zombie_offset_str_list = zombie_offset_map_str.split("|");
-        std::map<int, Offset> zombie_offset_map;
-        for (auto& zombie_offset_str : zombie_offset_str_list) {
-            if (zombie_offset_str.size() == 0) {
+        auto object_offset_str_list = object_offset_map_str.split("|");
+        std::map<int, Offset> object_offset_map;
+        for (auto& object_offset_str : object_offset_str_list) {
+            if (object_offset_str.size() == 0) {
                 continue;
             }
-            auto zombie_offset_list = zombie_offset_str.split(",");
-            state = zombie_offset_list[0].toInt();
-            offset.x = zombie_offset_list[1].toFloat();
-            offset.y = zombie_offset_list[2].toFloat();
-            zombie_offset_map.insert({state, offset});
+            auto object_offset_list = object_offset_str.split(",");
+            state = object_offset_list[0].toInt();
+            offset.x = object_offset_list[1].toFloat();
+            offset.y = object_offset_list[2].toFloat();
+            object_offset_map.insert({state, offset});
         }
-        zombie_offset_dict.push_back(zombie_offset_map);
+        object_offset_dict_ptr->push_back(object_offset_map);
     }
-
     settings.endGroup();
 }

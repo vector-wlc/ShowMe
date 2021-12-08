@@ -1,5 +1,4 @@
 #pragma once
-#pragma execution_character_set("utf-8")
 
 #include <cstdint>
 #include <initializer_list>
@@ -9,23 +8,23 @@
 
 extern HWND g_hwnd;
 extern HANDLE g_handle;
-extern uintptr_t g_pvzbase;    //»ùÖ·
-extern uintptr_t g_mainobject; //ÓÎÏ·¶ÔÏóµØÖ·
+extern uintptr_t g_pvzbase;    //åŸºå€
+extern uintptr_t g_mainobject; //æ¸¸æˆå¯¹è±¡åœ°å€
 
 #define PLANT_OFFSET 0xac
 #define ZOMBIE_OFFSET 0x90
 
-// ³õÊ¼»¯ÄÚ´æĞÅÏ¢
-// ·µ»Ø true : ³õÊ¼»¯³É¹¦
-// ·µ»Ø false : ³õÊ¼»¯Ê§°Ü£¬¿ÉÄÜÊÇÒòÎªÓÎÏ·ÒÑ¹Ø±Õ»òÕß²»ÔÚÕ½¶·½çÃæ
+// åˆå§‹åŒ–å†…å­˜ä¿¡æ¯
+// è¿”å› true : åˆå§‹åŒ–æˆåŠŸ
+// è¿”å› false : åˆå§‹åŒ–å¤±è´¥ï¼Œå¯èƒ½æ˜¯å› ä¸ºæ¸¸æˆå·²å…³é—­æˆ–è€…ä¸åœ¨æˆ˜æ–—ç•Œé¢
 bool IsDisplayed();
 
-// ¶ÁÈ¡ÄÚ´æº¯Êı
+// è¯»å–å†…å­˜å‡½æ•°
 // ReadMemory<data type>(address);
-// ´Ëº¯ÊıÓĞ·µ»ØÖµ£¬ĞèÒª±äÁ¿½ÓÊÕ¶ÁÈ¡½á¹û
-// Ê¹ÓÃÊ¾Àı
-// ReadMemory<int>(0x6A9EC0) -----¶ÁÈ¡»ùÖ·
-// ReadMemory<int>(0x6A9EC0, 0x768) ------¶ÁÈ¡µ±Ç°ÓÎÏ·ĞÅÏ¢ºÍ¶ÔÏó
+// æ­¤å‡½æ•°æœ‰è¿”å›å€¼ï¼Œéœ€è¦å˜é‡æ¥æ”¶è¯»å–ç»“æœ
+// ä½¿ç”¨ç¤ºä¾‹
+// ReadMemory<int>(0x6A9EC0) -----è¯»å–åŸºå€
+// ReadMemory<int>(0x6A9EC0, 0x768) ------è¯»å–å½“å‰æ¸¸æˆä¿¡æ¯å’Œå¯¹è±¡
 template <typename T, typename... Args>
 T ReadMemory(Args... args)
 {
@@ -40,85 +39,115 @@ T ReadMemory(Args... args)
     return result;
 }
 
+//æ”¹å†™å†…å­˜å‡½æ•°
+template <typename T, typename... Args>
+void WriteMemory(T value, Args... args)
+{
+    std::initializer_list<uintptr_t> lst = {static_cast<uintptr_t>(args)...};
+    uintptr_t buff = 0;
+    for (auto it = lst.begin(); it != lst.end(); ++it)
+        if (it != lst.end() - 1)
+            ReadProcessMemory(g_handle, (const void*)(buff + *it), &buff, sizeof(buff), nullptr);
+        else
+            WriteProcessMemory(g_handle, (void*)(buff + *it), &value, sizeof(value), nullptr);
+}
+
 // ########## memory classes ###############
 
-// ³éÏóÄÚ´æÀà
+// æŠ½è±¡å†…å­˜ç±»
 class AbstractMemory {
 protected:
-    uintptr_t offset; // µØÖ·Æ«ÒÆ
-    int index;        // ¶ÔÏóĞòÁĞ/Õ»Î»/ĞòºÅ...
+    uintptr_t offset; // åœ°å€åç§»
+    int index;        // å¯¹è±¡åºåˆ—/æ ˆä½/åºå·...
 
 public:
     AbstractMemory() { offset = index = 0; }
-    // ÉèÖÃ¶ÔÏóĞòÁĞ
+    // è®¾ç½®å¯¹è±¡åºåˆ—
     void setIndex(int _index) { index = _index; }
-    // ÖØĞÂµÃµ½µØÖ·Æ«ÒÆĞÅÏ¢
+    // é‡æ–°å¾—åˆ°åœ°å€åç§»ä¿¡æ¯
     virtual void getOffset() = 0;
+    // å¾—åˆ°å¯¹è±¡çš„ç±»å‹
+    virtual int type()
+    {
+        return 0;
+    }
+    virtual ~AbstractMemory()
+    {
+    }
 };
 
-// ¿¨Æ¬ÄÚ´æĞÅÏ¢Àà
+// å¡ç‰‡å†…å­˜ä¿¡æ¯ç±»
 class SeedMemory : public AbstractMemory {
 public:
     SeedMemory(int _index);
     SeedMemory();
+    virtual ~SeedMemory()
+    {
+    }
 
     virtual void getOffset();
 
-    // ·µ»Ø¿¨²ÛÊıÄ¿
+    // è¿”å›å¡æ§½æ•°ç›®
     int slotsCount()
     {
         return ReadMemory<int>(offset + 0x24);
     }
 
-    // ÅĞ¶Ï¿¨Æ¬ÊÇ·ñ¿ÉÓÃ
+    // åˆ¤æ–­å¡ç‰‡æ˜¯å¦å¯ç”¨
     bool isUsable()
     {
         return ReadMemory<bool>(offset + 0x70 + 0x50 * index);
     }
 
-    // ·µ»Ø¿¨Æ¬ÀäÈ´
+    // è¿”å›å¡ç‰‡å†·å´
     int CD()
     {
         return ReadMemory<int>(offset + 0x4C + index * 0x50);
     }
 
-    // ·µ»Ø¿¨Æ¬×ÜÀäÈ´Ê±¼ä
+    // è¿”å›å¡ç‰‡æ€»å†·å´æ—¶é—´
     int initialCD()
     {
         return ReadMemory<int>(offset + 0x50 + index * 0x50);
     }
 
-    // ·µ»ØÄ£·ÂÕß¿¨Æ¬ÀàĞÍ
+    // è¿”å›æ¨¡ä»¿è€…å¡ç‰‡ç±»å‹
     int imitatorType()
     {
         return ReadMemory<int>(offset + 0x60 + index * 0x50);
     }
 
-    // ·µ»Ø¿¨Æ¬ÀàĞÍ
-    int type()
+    // è¿”å›å¡ç‰‡ç±»å‹
+    virtual int type()
     {
         return ReadMemory<int>(offset + 0x5C + index * 0x50);
     }
 
-    // ·µ»Ø¿¨Æ¬ºá×ø±ê
+    // è¿”å›å¡ç‰‡æ¨ªåæ ‡
     int abscissa()
     {
         return ReadMemory<int>(offset + 0xc + 0x24 + index * 0x50);
     }
 
-    // ·µ»Ø¿¨Æ¬×İ×ø±ê
+    // è¿”å›å¡ç‰‡çºµåæ ‡
     int ordinate()
     {
         return ReadMemory<int>(offset + 0x10 + 0x24 + index * 0x50);
     }
 
-    // ·µ»Ø¿¨Æ¬ÅĞ¶¨¿í¶È
+    // è¿”å›å¡ç‰‡ x åç§»é‡
+    int xOffset()
+    {
+        return ReadMemory<int>(offset + 0x34 + 0x24 + index * 0x50);
+    }
+
+    // è¿”å›å¡ç‰‡åˆ¤å®šå®½åº¦
     int width()
     {
         return ReadMemory<int>(offset + 0x14 + 0x24 + index * 0x50);
     }
 
-    // ·µ»Ø¿¨Æ¬ÅĞ¶¨¸ß¶È
+    // è¿”å›å¡ç‰‡åˆ¤å®šé«˜åº¦
     int height()
     {
         return ReadMemory<int>(offset + 0x18 + 0x24 + index * 0x50);
@@ -129,116 +158,119 @@ class PlantMemory : public AbstractMemory {
 public:
     PlantMemory(int _index);
     PlantMemory();
+    virtual ~PlantMemory()
+    {
+    }
 
     virtual void getOffset();
 
-    // ·µ»Øµ±Ç°×î´óÖ²ÎïÊıÄ¿
+    // è¿”å›å½“å‰æœ€å¤§æ¤ç‰©æ•°ç›®
     static int countMax()
     {
         return ReadMemory<int>(g_mainobject + 0xB0);
     }
 
-    // ·µ»ØÏÂÒ»¸öÖ²ÎïµÄÕ»Î»/±àºÅ/¶ÔÏóĞòÁĞ
+    // è¿”å›ä¸‹ä¸€ä¸ªæ¤ç‰©çš„æ ˆä½/ç¼–å·/å¯¹è±¡åºåˆ—
     static int nextIndex()
     {
         return ReadMemory<int>(g_mainobject + 0xB8);
     }
 
-    // ·µ»ØÖ²ÎïËùÔÚĞĞ ÊıÖµ·¶Î§£º[0,5]
+    // è¿”å›æ¤ç‰©æ‰€åœ¨è¡Œ æ•°å€¼èŒƒå›´ï¼š[0,5]
     int row()
     {
         return ReadMemory<int>(offset + 0x1C + 0x14C * index);
     }
 
-    // ·µ»ØÖ²ÎïËùÔÚÁĞ ÊıÖµ·¶Î§£º[0,8]
+    // è¿”å›æ¤ç‰©æ‰€åœ¨åˆ— æ•°å€¼èŒƒå›´ï¼š[0,8]
     int col()
     {
         return ReadMemory<int>(offset + 0x28 + 0x14C * index);
     }
 
-    // ÅĞ¶ÏÖ²ÎïÊÇ·ñÏûÊ§
+    // åˆ¤æ–­æ¤ç‰©æ˜¯å¦æ¶ˆå¤±
     bool isDisappeared()
     {
         return ReadMemory<bool>(offset + 0x141 + 0x14C * index);
     }
 
-    // ÅĞ¶ÏÖ²ÎïÊÇ·ñ±»Ñ¹±â
+    // åˆ¤æ–­æ¤ç‰©æ˜¯å¦è¢«å‹æ‰
     bool isCrushed()
     {
         return ReadMemory<bool>(offset + 0x142 + 0x14C * index);
     }
 
-    // ·µ»ØÖ²ÎïÀàĞÍ ÓëÍ¼¼øË³ĞòÒ»Ñù£¬´Ó0¿ªÊ¼
-    int type()
+    // è¿”å›æ¤ç‰©ç±»å‹ ä¸å›¾é‰´é¡ºåºä¸€æ ·ï¼Œä»0å¼€å§‹
+    virtual int type()
     {
         return ReadMemory<int>(offset + 0x24 + 0x14C * index);
     }
 
-    // ·µ»ØÖ²Îïºá×ø±ê ÊıÖµ·¶Î§£º[0,800]
+    // è¿”å›æ¤ç‰©æ¨ªåæ ‡ æ•°å€¼èŒƒå›´ï¼š[0,800]
     int abscissa()
     {
         return ReadMemory<int>(offset + 0x8 + 0x14C * index);
     }
 
-    // ·µ»ØÖ²Îï×İ×ø±ê
+    // è¿”å›æ¤ç‰©çºµåæ ‡
     int ordinate()
     {
         return ReadMemory<int>(offset + 0xC + 0x14C * index);
     }
 
-    // ÊÜÉËÅĞ¶¨¿í¶È
+    // å—ä¼¤åˆ¤å®šå®½åº¦
     int hurtWidth()
     {
         return ReadMemory<int>(offset + 0x10 + 0x14C * index);
     }
 
-    // ÊÜÉËÅĞ¶¨¸ß¶È
+    // å—ä¼¤åˆ¤å®šé«˜åº¦
     int hurtHeight()
     {
         return ReadMemory<int>(offset + 0x14 + 0x14C * index);
     }
 
-    // ·µ»ØÖ²ÎïÑªÁ¿
+    // è¿”å›æ¤ç‰©è¡€é‡
     int hp()
     {
         return ReadMemory<int>(offset + 0x40 + 0x14C * index);
     }
 
-    // ·µ»ØÖ²ÎïÑªÁ¿ÉÏÏŞ
+    // è¿”å›æ¤ç‰©è¡€é‡ä¸Šé™
     int hpMax()
     {
         return ReadMemory<int>(offset + 0x44 + 0x14C * index);
     }
 
-    // ÉúĞ§µ¹¼ÆÊ±
+    // ç”Ÿæ•ˆå€’è®¡æ—¶
     int activeCountdown()
     {
         return ReadMemory<int>(offset + 0x50 + 0x14C * index);
     }
 
-    // ·¢Éä×Óµ¯µ¹¼ÆÊ±£¬¸Ãµ¹¼ÆÊ±²»ÂÛÊÇ·ñÓĞ½©Ê¬Ò»Ö±²»¶Ï¼õĞ¡²¢ÖØÖÃ
+    // å‘å°„å­å¼¹å€’è®¡æ—¶ï¼Œè¯¥å€’è®¡æ—¶ä¸è®ºæ˜¯å¦æœ‰åƒµå°¸ä¸€ç›´ä¸æ–­å‡å°å¹¶é‡ç½®
     int bulletCountdown()
     {
         return ReadMemory<int>(offset + 0x58 + 0x14C * index);
     }
 
-    // ×Óµ¯·¢Éäµ¹¼ÆÊ±£¬¸Ãµ¹¼ÆÊ±Ö»ÔÚÓĞ½©Ê¬Ê±²ÅÒ»Ö±²»¶Ï¼õĞ¡²¢ÖØÖÃ
+    // å­å¼¹å‘å°„å€’è®¡æ—¶ï¼Œè¯¥å€’è®¡æ—¶åªåœ¨æœ‰åƒµå°¸æ—¶æ‰ä¸€ç›´ä¸æ–­å‡å°å¹¶é‡ç½®
     int countdownBullet()
     {
         return ReadMemory<int>(offset + 0x90 + 0x14C * index);
     }
 
-    // ·µ»ØÖ²ÎïµÄ×´Ì¬
-    // 35£º¿ÕÅÚ
-    // 36£ºÕıÔÚ×°Ìî
-    // 37£º×¼±¸¾ÍĞ÷
-    // 38£ºÕıÔÚ·¢Éä
+    // è¿”å›æ¤ç‰©çš„çŠ¶æ€
+    // 35ï¼šç©ºç‚®
+    // 36ï¼šæ­£åœ¨è£…å¡«
+    // 37ï¼šå‡†å¤‡å°±ç»ª
+    // 38ï¼šæ­£åœ¨å‘å°„
     int state()
     {
         return ReadMemory<int>(offset + 0x3C + 0x14C * index);
     }
 
-    // Ö²ÎïÊôĞÔµ¹¼ÆÊ±
+    // æ¤ç‰©å±æ€§å€’è®¡æ—¶
     int stateCountdown()
     {
         return ReadMemory<int>(offset + 0x54 + 0x14C * index);
@@ -249,46 +281,49 @@ class ZombieMemory : public AbstractMemory {
 public:
     ZombieMemory(int _index);
     ZombieMemory();
+    virtual ~ZombieMemory()
+    {
+    }
 
     virtual void getOffset();
 
-    // ·µ»Ø½©Ê¬×î´óÊıÄ¿
+    // è¿”å›åƒµå°¸æœ€å¤§æ•°ç›®
     static int countMax()
     {
         return ReadMemory<int>(g_mainobject + 0x94);
     }
 
-    // ÅĞ¶Ï½©Ê¬ÊÇ·ñ´æÔÚ
+    // åˆ¤æ–­åƒµå°¸æ˜¯å¦å­˜åœ¨
     bool isExist()
     {
         return ReadMemory<short>(offset + 0x15A + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬ËùÔÚĞĞÊı ·¶Î§£º[0,5]
+    // è¿”å›åƒµå°¸æ‰€åœ¨è¡Œæ•° èŒƒå›´ï¼š[0,5]
     int row()
     {
         return ReadMemory<int>(offset + 0x1C + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬ËùÔÚºá×ø±ê ·¶Î§£º[0,800]
+    // è¿”å›åƒµå°¸æ‰€åœ¨æ¨ªåæ ‡ èŒƒå›´ï¼š[0,800]
     float abscissa()
     {
         return ReadMemory<float>(offset + 0x2C + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬×İ×ø±ê
+    // è¿”å›åƒµå°¸çºµåæ ‡
     float ordinate()
     {
         return ReadMemory<float>(offset + 0x30 + 0x15C * index);
     }
 
-    // ÊÜÉËÅĞ¶¨¿í¶È
+    // å—ä¼¤åˆ¤å®šå®½åº¦
     int hurtWidth()
     {
         return ReadMemory<int>(offset + 0x94 + 0x15C * index);
     }
 
-    // ÊÜÉËÅĞ¶¨¸ß¶È
+    // å—ä¼¤åˆ¤å®šé«˜åº¦
     int hurtHeight()
     {
         return ReadMemory<int>(offset + 0x98 + 0x15C * index);
@@ -299,121 +334,121 @@ public:
         return ReadMemory<int>(offset + 0x6C + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬ÀàĞÍ ÓëÍ¼¼øË³ĞòÒ»Ñù£¬´Ó0¿ªÊ¼
-    int type()
+    // è¿”å›åƒµå°¸ç±»å‹ ä¸å›¾é‰´é¡ºåºä¸€æ ·ï¼Œä»0å¼€å§‹
+    virtual int type()
     {
         return ReadMemory<int>(offset + 0x24 + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬±¾Ìåµ±Ç°ÑªÁ¿
+    // è¿”å›åƒµå°¸æœ¬ä½“å½“å‰è¡€é‡
     int hp()
     {
         return ReadMemory<int>(offset + 0xC8 + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬Ò»ÀàÊÎÆ·µ±Ç°ÑªÁ¿
+    // è¿”å›åƒµå°¸ä¸€ç±»é¥°å“å½“å‰è¡€é‡
     int oneHp()
     {
         return ReadMemory<int>(offset + 0xD0 + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬¶şÀàÊÎÆ·ÑªÁ¿
+    // è¿”å›åƒµå°¸äºŒç±»é¥°å“è¡€é‡
     int twoHp()
     {
         return ReadMemory<int>(offset + 0xDC + 0x15C * index);
     }
 
-    // ÅĞ¶Ï½©Ê¬ÊÇ·ñ¿ĞÊ³
+    // åˆ¤æ–­åƒµå°¸æ˜¯å¦å•ƒé£Ÿ
     bool isEat()
     {
         return ReadMemory<bool>(offset + 0x51 + 0x15C * index);
     }
 
-    // ·µ»Ø½©Ê¬×´Ì¬
+    // è¿”å›åƒµå°¸çŠ¶æ€
     int state()
     {
         return ReadMemory<int>(offset + 0x28 + 0x15C * index);
     }
 
-    // ÅĞ¶Ï½©Ê¬ÊÇ·ñËÀÍö
+    // åˆ¤æ–­åƒµå°¸æ˜¯å¦æ­»äº¡
     bool isDead()
     {
         return state() == 1 || state() == 2 || state() == 3;
     }
 
-    // ÅĞ¶Ï¾ŞÈËÊÇ·ñ¾Ù´¸
+    // åˆ¤æ–­å·¨äººæ˜¯å¦ä¸¾é”¤
     bool isHammering()
     {
         return state() == 70;
     }
 
-    // ÅĞ¶Ï½©Ê¬ÊÇ·ñÒşĞÎ
+    // åˆ¤æ–­åƒµå°¸æ˜¯å¦éšå½¢
     bool isStealth()
     {
         return ReadMemory<bool>(offset + 0x18 + 0x15C * index);
     }
 
-    // ±ä»¯Á¿(Ç°½øµÄÎèÍõºÍ¼õËÙµÄ±ù³µµÈµÄÇ°½øËÙ¶È)
+    // å˜åŒ–é‡(å‰è¿›çš„èˆç‹å’Œå‡é€Ÿçš„å†°è½¦ç­‰çš„å‰è¿›é€Ÿåº¦)
     float speed()
     {
         return ReadMemory<float>(offset + 0x34 + 0x15C * index);
     }
 
-    // ½©Ê¬ÒÑ´æÔÚÊ±¼ä
+    // åƒµå°¸å·²å­˜åœ¨æ—¶é—´
     int existTime()
     {
         return ReadMemory<int>(offset + 0x60 + 0x15C * index);
     }
 
-    // ½©Ê¬ÊôĞÔµ¹¼ÆÊ±
+    // åƒµå°¸å±æ€§å€’è®¡æ—¶
     int stateCountdown()
     {
         return ReadMemory<int>(offset + 0x68 + 0x15C * index);
     }
 
-    // ÅĞ¶Ï½©Ê¬ÊÇ·ñÏûÊ§
+    // åˆ¤æ–­åƒµå°¸æ˜¯å¦æ¶ˆå¤±
     bool isDisappeared()
     {
         return ReadMemory<bool>(offset + 0xEC + 0x15C * index);
     }
 
-    // ½©Ê¬ÖĞµ¯ÅĞ¶¨µÄºá×ø±ê
+    // åƒµå°¸ä¸­å¼¹åˆ¤å®šçš„æ¨ªåæ ‡
     int bulletAbscissa()
     {
         return ReadMemory<int>(offset + 0x8C + 0x15C * index);
     }
 
-    // ½©Ê¬ÖĞµ¯ÅĞ¶¨µÄ×İ×ø±ê
+    // åƒµå°¸ä¸­å¼¹åˆ¤å®šçš„çºµåæ ‡
     int bulletOrdinate()
     {
         return ReadMemory<int>(offset + 0x90 + 0x15C * index);
     }
 
-    // ½©Ê¬¹¥»÷ÅĞ¶¨µÄºá×ø±ê
+    // åƒµå°¸æ”»å‡»åˆ¤å®šçš„æ¨ªåæ ‡
     int attackAbscissa()
     {
         return ReadMemory<int>(offset + 0x9C + 0x15C * index);
     }
 
-    // ½©Ê¬¹¥»÷ÅĞ¶¨µÄ×İ×ø±ê
+    // åƒµå°¸æ”»å‡»åˆ¤å®šçš„çºµåæ ‡
     int attackOrdinate()
     {
         return ReadMemory<int>(offset + 0xA0 + 0x15C * index);
     }
 
-    // ½©Ê¬¼õËÙµ¹¼ÆÊ±
+    // åƒµå°¸å‡é€Ÿå€’è®¡æ—¶
     int slowCountdown()
     {
         return ReadMemory<int>(offset + 0xAC + 0x15C * index);
     }
 
-    // ½©Ê¬»ÆÓÍ¹Ì¶¨µ¹¼ÆÊ±
+    // åƒµå°¸é»„æ²¹å›ºå®šå€’è®¡æ—¶
     int fixationCountdown()
     {
         return ReadMemory<int>(offset + 0xB0 + 0x15C * index);
     }
 
-    // ½©Ê¬¶³½áµ¹¼ÆÊ±
+    // åƒµå°¸å†»ç»“å€’è®¡æ—¶
     int freezeCountdown()
     {
         return ReadMemory<int>(offset + 0xB4 + 0x15C * index);
@@ -424,29 +459,32 @@ class PlaceMemory : public AbstractMemory {
 public:
     PlaceMemory(int _index);
     PlaceMemory();
+    virtual ~PlaceMemory()
+    {
+    }
 
     virtual void getOffset();
 
-    // ·µ»Ø³¡¾°ÎïÆ·×î´óÊıÄ¿
-    // °üÀ¨£ºµ¯¿Ó Ä¹±® ¹Ş×ÓµÈ
+    // è¿”å›åœºæ™¯ç‰©å“æœ€å¤§æ•°ç›®
+    // åŒ…æ‹¬ï¼šå¼¹å‘ å¢“ç¢‘ ç½å­ç­‰
     static int countMax()
     {
         return ReadMemory<int>(g_mainobject + 0x120);
     }
 
-    // ·µ»Ø¸Ã¸ñ×ÓÎïÆ·µÄÀàĞÍ
-    int type()
+    // è¿”å›è¯¥æ ¼å­ç‰©å“çš„ç±»å‹
+    virtual int type()
     {
         return ReadMemory<int>(offset + 0x8 + 0xEC * index);
     }
 
-    // ·µ»ØÎïÆ·µÄĞĞÊı ·¶Î§£º[0,5]
+    // è¿”å›ç‰©å“çš„è¡Œæ•° èŒƒå›´ï¼š[0,5]
     int row()
     {
         return ReadMemory<int>(offset + 0x14 + 0xEC * index);
     }
 
-    // ·µ»ØÎïÆ·µÄÁĞÊı ·¶Î§£º[0,8]
+    // è¿”å›ç‰©å“çš„åˆ—æ•° èŒƒå›´ï¼š[0,8]
     int col()
     {
         return ReadMemory<int>(offset + 0x10 + 0xEC * index);
@@ -456,13 +494,13 @@ public:
     {
         return ReadMemory<int>(offset + 0x18 + 0xEC * index);
     }
-    // ÅĞ¶ÏÎïÆ·ÊÇ·ñ´æÔÚ
+    // åˆ¤æ–­ç‰©å“æ˜¯å¦å­˜åœ¨
     bool isExist()
     {
         return ReadMemory<short>(offset + 0xEA + 0xEC * index);
     }
 
-    // ÅĞ¶ÏÎïÆ·ÊÇ·ñÏûÊ§
+    // åˆ¤æ–­ç‰©å“æ˜¯å¦æ¶ˆå¤±
     bool isDisappeared()
     {
         return ReadMemory<bool>(offset + 0x20 + 0xEC * index);
@@ -476,38 +514,38 @@ public:
 
     virtual void getOffset();
 
-    // ·µ»ØĞèÒªÊÕ¼¯ÎïÆ·µÄÊıÄ¿
-    // °üÀ¨½ğ±Ò ×êÊ¯ ÀñºĞµÈ
+    // è¿”å›éœ€è¦æ”¶é›†ç‰©å“çš„æ•°ç›®
+    // åŒ…æ‹¬é‡‘å¸ é’»çŸ³ ç¤¼ç›’ç­‰
     static int count()
     {
         return ReadMemory<int>(g_mainobject + 0xF4);
     }
 
-    // ·µ»ØĞèÒªÊÕ¼¯ÎïÆ·µÄ×î´óÊıÄ¿
+    // è¿”å›éœ€è¦æ”¶é›†ç‰©å“çš„æœ€å¤§æ•°ç›®
     static int countMax()
     {
         return ReadMemory<int>(g_mainobject + 0xE8);
     }
 
-    // ÅĞ¶ÏÎïÆ·ÊÇ·ñÏûÊ§
+    // åˆ¤æ–­ç‰©å“æ˜¯å¦æ¶ˆå¤±
     bool isDisappeared()
     {
         return ReadMemory<bool>(offset + 0x38 + 0xD8 * index);
     }
 
-    // ÅĞ¶ÏÎïÆ·ÊÇ·ñ±»ÊÕ¼¯
+    // åˆ¤æ–­ç‰©å“æ˜¯å¦è¢«æ”¶é›†
     bool isCollected()
     {
         return ReadMemory<bool>(offset + 0x50 + 0xD8 * index);
     }
 
-    // ·µ»ØÎïÆ·ºá×ø±ê
+    // è¿”å›ç‰©å“æ¨ªåæ ‡
     float abscissa()
     {
         return ReadMemory<float>(offset + 0x24 + 0xD8 * index);
     }
 
-    // ·µ»ØÎïÆ·×İ×ø±ê
+    // è¿”å›ç‰©å“çºµåæ ‡
     float ordinate()
     {
         return ReadMemory<float>(offset + 0x28 + 0xD8 * index);
@@ -516,25 +554,25 @@ public:
 
 // ########## memory functions ###############
 
-// ·µ»ØÊó±êËùÔÚĞĞ
+// è¿”å›é¼ æ ‡æ‰€åœ¨è¡Œ
 inline int MouseRow()
 {
     return ReadMemory<int>(g_mainobject + 0x13C, 0x28) + 1;
 }
 
-// ·µ»ØÊó±êËùÔÚÁĞ
+// è¿”å›é¼ æ ‡æ‰€åœ¨åˆ—
 inline float MouseCol()
 {
     return 1.0 * ReadMemory<int>(g_pvzbase + 0x320, 0xE0) / 80;
 }
 
-// ·µ»ØÊó±êºá×ø±ê
+// è¿”å›é¼ æ ‡æ¨ªåæ ‡
 inline int PvZMouseX()
 {
     return ReadMemory<int>(g_pvzbase + 0x320, 0xE0);
 }
 
-// ·µ»ØÊó±ê×İ×ø±ê
+// è¿”å›é¼ æ ‡çºµåæ ‡
 inline int PvZMouseY()
 {
     return ReadMemory<int>(g_pvzbase + 0x320, 0xE4);
@@ -545,183 +583,183 @@ inline bool IsMouseInPvZ()
     return ReadMemory<bool>(g_pvzbase + 0x320, 0xdc);
 }
 
-//»ñÈ¡ÓÎÏ·ĞÅÏ¢
-//1: Ö÷½çÃæ, 2: Ñ¡¿¨, 3: Õı³£ÓÎÏ·/Õ½¶·, 4: ½©Ê¬½øÎİ, 7: Ä£Ê½Ñ¡Ôñ.
+//è·å–æ¸¸æˆä¿¡æ¯
+//1: ä¸»ç•Œé¢, 2: é€‰å¡, 3: æ­£å¸¸æ¸¸æˆ/æˆ˜æ–—, 4: åƒµå°¸è¿›å±‹, 7: æ¨¡å¼é€‰æ‹©.
 inline int GameUi()
 {
     return ReadMemory<int>(g_pvzbase + 0x7FC);
 }
 
-//»ñÈ¡ÓÎÏ·µ±Ç°ÓÎÏ·Ê±ÖÓ
+//è·å–æ¸¸æˆå½“å‰æ¸¸æˆæ—¶é’Ÿ
 inline int GameClock()
 {
     return ReadMemory<int>(g_mainobject + 0x5568);
 }
 
-//·µ»ØË¢ĞÂÑªÁ¿
+//è¿”å›åˆ·æ–°è¡€é‡
 inline int RefreshHp()
 {
     return ReadMemory<int>(g_mainobject + 0x5594);
 }
 
-//·µ»ØË¢ĞÂµ¹¼ÆÊ±
+//è¿”å›åˆ·æ–°å€’è®¡æ—¶
 inline int Countdown()
 {
     return ReadMemory<int>(g_mainobject + 0x559c);
 }
 
-//·µ»Ø´ó²¨Ë¢ĞÂµ¹¼ÆÊ±
+//è¿”å›å¤§æ³¢åˆ·æ–°å€’è®¡æ—¶
 inline int HugeWaveCountdown()
 {
     return ReadMemory<int>(g_mainobject + 0x55A4);
 }
 
-//·µ»ØÒÑË¢ĞÂ²¨Êı
+//è¿”å›å·²åˆ·æ–°æ³¢æ•°
 inline int NowWave()
 {
     return ReadMemory<int>(g_mainobject + 0x557c);
 }
 
-//·µ»Ø×Ü²¨Êı
+//è¿”å›æ€»æ³¢æ•°
 inline int TotalWave()
 {
     return ReadMemory<int>(g_mainobject + 0x5564);
 }
 
-//·µ»Ø³õÊ¼Ë¢ĞÂµ¹¼ÆÊ±
+//è¿”å›åˆå§‹åˆ·æ–°å€’è®¡æ—¶
 inline int InitialCountdown()
 {
     return ReadMemory<int>(g_mainobject + 0x55A0);
 }
 
-//·µ»ØÒ»ĞĞµÄ±ùµÀ×ø±ê ·¶Î§£º[0,800]
-//Ê¹ÓÃÊ¾Àı£º
-//IceAbscissa(0)------µÃµ½µÚÒ»ĞĞµÄ±ùµÀ×ø±ê
+//è¿”å›ä¸€è¡Œçš„å†°é“åæ ‡ èŒƒå›´ï¼š[0,800]
+//ä½¿ç”¨ç¤ºä¾‹ï¼š
+//IceAbscissa(0)------å¾—åˆ°ç¬¬ä¸€è¡Œçš„å†°é“åæ ‡
 inline int IceAbscissa(int i)
 {
     return ReadMemory<int>(g_mainobject + 0x60C + 4 * i);
 }
 
-// Ö²ÎïÀàĞÍ
+// æ¤ç‰©ç±»å‹
 enum PlantType {
-    PEASHOOTER = 0, // Íã¶¹ÉäÊÖ
-    SUNFLOWER,      // ÏòÈÕ¿û
-    CHERRY_BOMB,    // Ó£ÌÒÕ¨µ¯
-    WALL_NUT,       // ¼á¹û
-    POTATO_MINE,    // ÍÁ¶¹µØÀ×
-    SNOW_PEA,       // º®±ùÉäÊÖ
-    CHOMPER,        // ´ó×ì»¨
-    REPEATER,       // Ë«ÖØÉäÊÖ
-    PUFF_SHROOM,    // Ğ¡Åç¹½
-    SUN_SHROOM,     // Ñô¹â¹½
-    FUME_SHROOM,    // ´óÅç¹½
-    GRAVE_BUSTER,   // Ä¹±®ÍÌÊÉÕß
-    HYPNO_SHROOM,   // ÷È»ó¹½
-    SCAREDY_SHROOM, // µ¨Ğ¡¹½
-    ICE_SHROOM,     // º®±ù¹½
-    DOOM_SHROOM,    // »ÙÃğ¹½
-    LILY_PAD,       // ºÉÒ¶
-    SQUASH,         // ÙÁ¹Ï
-    THREEPEATER,    // Èı·¢ÉäÊÖ
-    TANGLE_KELP,    // ²øÈÆº£Ôå
-    JALAPENO,       // »ğ±¬À±½·
-    SPIKEWEED,      // µØ´Ì
-    TORCHWOOD,      // »ğ¾æÊ÷×®
-    TALL_NUT,       // ¸ß¼á¹û
-    SEA_SHROOM,     // Ë®±ø¹½
-    PLANTERN,       // Â·µÆ»¨
-    CACTUS,         // ÏÉÈËÕÆ
-    BLOVER,         // ÈıÒ¶²İ
-    SPLIT_PEA,      // ÁÑ¼ÔÉäÊÖ
-    STARFRUIT,      // ÑîÌÒ
-    PUMPKIN,        // ÄÏ¹ÏÍ·
-    MAGNET_SHROOM,  // ´ÅÁ¦¹½
-    CABBAGE_PULT,   // ¾íĞÄ²ËÍ¶ÊÖ
-    FLOWER_POT,     // »¨Åè
-    KERNEL_PULT,    // ÓñÃ×Í¶ÊÖ
-    COFFEE_BEAN,    // ¿§·È¶¹
-    GARLIC,         // ´óËâ
-    UMBRELLA_LEAF,  // Ò¶×Ó±£»¤É¡
-    MARIGOLD,       // ½ğÕµ»¨
-    MELON_PULT,     // Î÷¹ÏÍ¶ÊÖ
-    GATLING_PEA,    // »úÇ¹ÉäÊÖ
-    TWIN_SUNFLOWER, // Ë«×ÓÏòÈÕ¿û
-    GLOOM_SHROOM,   // ÓÇÓô¹½
-    CATTAIL,        // ÏãÆÑ
-    WINTER_MELON,   // ±ùÎ÷¹ÏÍ¶ÊÖ
-    GOLD_MAGNET,    // Îü½ğ´Å
-    SPIKEROCK,      // µØ´ÌÍõ
-    COB_CANNON,     // ÓñÃ×¼ÓÅ©ÅÚ
+    PEASHOOTER = 0, // è±Œè±†å°„æ‰‹
+    SUNFLOWER,      // å‘æ—¥è‘µ
+    CHERRY_BOMB,    // æ¨±æ¡ƒç‚¸å¼¹
+    WALL_NUT,       // åšæœ
+    POTATO_MINE,    // åœŸè±†åœ°é›·
+    SNOW_PEA,       // å¯’å†°å°„æ‰‹
+    CHOMPER,        // å¤§å˜´èŠ±
+    REPEATER,       // åŒé‡å°„æ‰‹
+    PUFF_SHROOM,    // å°å–·è‡
+    SUN_SHROOM,     // é˜³å…‰è‡
+    FUME_SHROOM,    // å¤§å–·è‡
+    GRAVE_BUSTER,   // å¢“ç¢‘åå™¬è€…
+    HYPNO_SHROOM,   // é­…æƒ‘è‡
+    SCAREDY_SHROOM, // èƒ†å°è‡
+    ICE_SHROOM,     // å¯’å†°è‡
+    DOOM_SHROOM,    // æ¯ç­è‡
+    LILY_PAD,       // è·å¶
+    SQUASH,         // å€­ç“œ
+    THREEPEATER,    // ä¸‰å‘å°„æ‰‹
+    TANGLE_KELP,    // ç¼ ç»•æµ·è—»
+    JALAPENO,       // ç«çˆ†è¾£æ¤’
+    SPIKEWEED,      // åœ°åˆº
+    TORCHWOOD,      // ç«ç‚¬æ ‘æ¡©
+    TALL_NUT,       // é«˜åšæœ
+    SEA_SHROOM,     // æ°´å…µè‡
+    PLANTERN,       // è·¯ç¯èŠ±
+    CACTUS,         // ä»™äººæŒ
+    BLOVER,         // ä¸‰å¶è‰
+    SPLIT_PEA,      // è£‚èšå°„æ‰‹
+    STARFRUIT,      // æ¨æ¡ƒ
+    PUMPKIN,        // å—ç“œå¤´
+    MAGNET_SHROOM,  // ç£åŠ›è‡
+    CABBAGE_PULT,   // å·å¿ƒèœæŠ•æ‰‹
+    FLOWER_POT,     // èŠ±ç›†
+    KERNEL_PULT,    // ç‰ç±³æŠ•æ‰‹
+    COFFEE_BEAN,    // å’–å•¡è±†
+    GARLIC,         // å¤§è’œ
+    UMBRELLA_LEAF,  // å¶å­ä¿æŠ¤ä¼
+    MARIGOLD,       // é‡‘ç›èŠ±
+    MELON_PULT,     // è¥¿ç“œæŠ•æ‰‹
+    GATLING_PEA,    // æœºæªå°„æ‰‹
+    TWIN_SUNFLOWER, // åŒå­å‘æ—¥è‘µ
+    GLOOM_SHROOM,   // å¿§éƒè‡
+    CATTAIL,        // é¦™è’²
+    WINTER_MELON,   // å†°è¥¿ç“œæŠ•æ‰‹
+    GOLD_MAGNET,    // å¸é‡‘ç£
+    SPIKEROCK,      // åœ°åˆºç‹
+    COB_CANNON,     // ç‰ç±³åŠ å†œç‚®
 
-    // Ä£·ÂÕßÃüÃû + M
-    M_PEASHOOTER,     // Íã¶¹ÉäÊÖ
-    M_SUNFLOWER,      // ÏòÈÕ¿û
-    M_CHERRY_BOMB,    // Ó£ÌÒÕ¨µ¯
-    M_WALL_NUT,       // ¼á¹û
-    M_POTATO_MINE,    // ÍÁ¶¹µØÀ×
-    M_SNOW_PEA,       // º®±ùÉäÊÖ
-    M_CHOMPER,        // ´ó×ì»¨
-    M_REPEATER,       // Ë«ÖØÉäÊÖ
-    M_PUFF_SHROOM,    // Ğ¡Åç¹½
-    M_SUN_SHROOM,     // Ñô¹â¹½
-    M_FUME_SHROOM,    // ´óÅç¹½
-    M_GRAVE_BUSTER,   // Ä¹±®ÍÌÊÉÕß
-    M_HYPNO_SHROOM,   // ÷È»ó¹½
-    M_SCAREDY_SHROOM, // µ¨Ğ¡¹½
-    M_ICE_SHROOM,     // º®±ù¹½
-    M_DOOM_SHROOM,    // »ÙÃğ¹½
-    M_LILY_PAD,       // ºÉÒ¶
-    M_SQUASH,         // ÙÁ¹Ï
-    M_THREEPEATER,    // Èı·¢ÉäÊÖ
-    M_TANGLE_KELP,    // ²øÈÆº£Ôå
-    M_JALAPENO,       // »ğ±¬À±½·
-    M_SPIKEWEED,      // µØ´Ì
-    M_TORCHWOOD,      // »ğ¾æÊ÷×®
-    M_TALL_NUT,       // ¸ß¼á¹û
-    M_SEA_SHROOM,     // Ë®±ø¹½
-    M_PLANTERN,       // Â·µÆ»¨
-    M_CACTUS,         // ÏÉÈËÕÆ
-    M_BLOVER,         // ÈıÒ¶²İ
-    M_SPLIT_PEA,      // ÁÑ¼ÔÉäÊÖ
-    M_STARFRUIT,      // ÑîÌÒ
-    M_PUMPKIN,        // ÄÏ¹ÏÍ·
-    M_MAGNET_SHROOM,  // ´ÅÁ¦¹½
-    M_CABBAGE_PULT,   // ¾íĞÄ²ËÍ¶ÊÖ
-    M_FLOWER_POT,     // »¨Åè
-    M_KERNEL_PULT,    // ÓñÃ×Í¶ÊÖ
-    M_COFFEE_BEAN,    // ¿§·È¶¹
-    M_GARLIC,         // ´óËâ
-    M_UMBRELLA_LEAF,  // Ò¶×Ó±£»¤É¡
-    M_MARIGOLD,       // ½ğÕµ»¨
-    M_MELON_PULT,     // Î÷¹ÏÍ¶ÊÖ
+    // æ¨¡ä»¿è€…å‘½å + M
+    M_PEASHOOTER,     // è±Œè±†å°„æ‰‹
+    M_SUNFLOWER,      // å‘æ—¥è‘µ
+    M_CHERRY_BOMB,    // æ¨±æ¡ƒç‚¸å¼¹
+    M_WALL_NUT,       // åšæœ
+    M_POTATO_MINE,    // åœŸè±†åœ°é›·
+    M_SNOW_PEA,       // å¯’å†°å°„æ‰‹
+    M_CHOMPER,        // å¤§å˜´èŠ±
+    M_REPEATER,       // åŒé‡å°„æ‰‹
+    M_PUFF_SHROOM,    // å°å–·è‡
+    M_SUN_SHROOM,     // é˜³å…‰è‡
+    M_FUME_SHROOM,    // å¤§å–·è‡
+    M_GRAVE_BUSTER,   // å¢“ç¢‘åå™¬è€…
+    M_HYPNO_SHROOM,   // é­…æƒ‘è‡
+    M_SCAREDY_SHROOM, // èƒ†å°è‡
+    M_ICE_SHROOM,     // å¯’å†°è‡
+    M_DOOM_SHROOM,    // æ¯ç­è‡
+    M_LILY_PAD,       // è·å¶
+    M_SQUASH,         // å€­ç“œ
+    M_THREEPEATER,    // ä¸‰å‘å°„æ‰‹
+    M_TANGLE_KELP,    // ç¼ ç»•æµ·è—»
+    M_JALAPENO,       // ç«çˆ†è¾£æ¤’
+    M_SPIKEWEED,      // åœ°åˆº
+    M_TORCHWOOD,      // ç«ç‚¬æ ‘æ¡©
+    M_TALL_NUT,       // é«˜åšæœ
+    M_SEA_SHROOM,     // æ°´å…µè‡
+    M_PLANTERN,       // è·¯ç¯èŠ±
+    M_CACTUS,         // ä»™äººæŒ
+    M_BLOVER,         // ä¸‰å¶è‰
+    M_SPLIT_PEA,      // è£‚èšå°„æ‰‹
+    M_STARFRUIT,      // æ¨æ¡ƒ
+    M_PUMPKIN,        // å—ç“œå¤´
+    M_MAGNET_SHROOM,  // ç£åŠ›è‡
+    M_CABBAGE_PULT,   // å·å¿ƒèœæŠ•æ‰‹
+    M_FLOWER_POT,     // èŠ±ç›†
+    M_KERNEL_PULT,    // ç‰ç±³æŠ•æ‰‹
+    M_COFFEE_BEAN,    // å’–å•¡è±†
+    M_GARLIC,         // å¤§è’œ
+    M_UMBRELLA_LEAF,  // å¶å­ä¿æŠ¤ä¼
+    M_MARIGOLD,       // é‡‘ç›èŠ±
+    M_MELON_PULT,     // è¥¿ç“œæŠ•æ‰‹
 };
 
 enum ZombieType {
-    ZOMBIE = 0,             // ÆÕ½©
-    FLAG_ZOMBIE,            // ÆìÖÄ
-    CONEHEAD_ZOMBIE,        // Â·ÕÏ
-    POLE_VAULTING_ZOMBIE,   // ³Å¸Ë
-    BUCKETHEAD_ZOMBIE,      // ÌúÍ°
-    NEWSPAPER_ZOMBIE,       // ¶Á±¨
-    SCREEN_DOOR_ZOMBIE,     // ÌúÃÅ
-    FOOTBALL_ZOMBIE,        // éÏé­
-    DANCING_ZOMBIE,         // ÎèÍõ
-    BACKUP_DANCER,          // °éÎè
-    DUCKY_TUBE_ZOMBIE,      // Ñ¼×Ó
-    SNORKEL_ZOMBIE,         // Ç±Ë®
-    ZOMBONI,                // ±ù³µ
-    ZOMBIE_BOBSLED_TEAM,    // Ñ©ÇÁ
-    DOLPHIN_RIDER_ZOMBIE,   // º£ëà
-    JACK_IN_THE_BOX_ZOMBIE, // Ğ¡³ó
-    BALLOON_ZOMBIE,         // ÆøÇò
-    DIGGER_ZOMBIE,          // ¿ó¹¤
-    POGO_ZOMBIE,            // ÌøÌø
-    ZOMBIE_YETI,            // Ñ©ÈË
-    BUNGEE_ZOMBIE,          // ±Ä¼«
-    LADDER_ZOMBIE,          // ·öÌİ
-    CATAPULT_ZOMBIE,        // Í¶Àº
-    GARGANTUAR,             // °×ÑÛ
-    IMP,                    // Ğ¡¹í
-    DR_ZOMBOSS,             // ½©²©
-    GIGA_GARGANTUAR = 32    // ºìÑÛ
+    PZOMBIE = 0,            // æ™®åƒµ
+    FLAG_ZOMBIE,            // æ——å¸œ
+    CONEHEAD_ZOMBIE,        // è·¯éšœ
+    POLE_VAULTING_ZOMBIE,   // æ’‘æ†
+    BUCKETHEAD_ZOMBIE,      // é“æ¡¶
+    NEWSPAPER_ZOMBIE,       // è¯»æŠ¥
+    SCREEN_DOOR_ZOMBIE,     // é“é—¨
+    FOOTBALL_ZOMBIE,        // æ©„æ¦„
+    DANCING_ZOMBIE,         // èˆç‹
+    BACKUP_DANCER,          // ä¼´èˆ
+    DUCKY_TUBE_ZOMBIE,      // é¸­å­
+    SNORKEL_ZOMBIE,         // æ½œæ°´
+    ZOMBONI,                // å†°è½¦
+    ZOMBIE_BOBSLED_TEAM,    // é›ªæ©‡
+    DOLPHIN_RIDER_ZOMBIE,   // æµ·è±š
+    JACK_IN_THE_BOX_ZOMBIE, // å°ä¸‘
+    BALLOON_ZOMBIE,         // æ°”çƒ
+    DIGGER_ZOMBIE,          // çŸ¿å·¥
+    POGO_ZOMBIE,            // è·³è·³
+    ZOMBIE_YETI,            // é›ªäºº
+    BUNGEE_ZOMBIE,          // è¹¦æ
+    LADDER_ZOMBIE,          // æ‰¶æ¢¯
+    CATAPULT_ZOMBIE,        // æŠ•ç¯®
+    GARGANTUAR,             // ç™½çœ¼
+    IMP,                    // å°é¬¼
+    DR_ZOMBOSS,             // åƒµåš
+    GIGA_GARGANTUAR = 32    // çº¢çœ¼
 };

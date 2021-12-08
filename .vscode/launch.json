@@ -5,13 +5,13 @@
             "name": "Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/build/debug/${workspaceRootFolderName}.exe",
+            "program": "${workspaceRoot}/build/release/${workspaceRootFolderName}.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],
             "console": "integratedTerminal",
-            "preLaunchTask": "debug"
+            "preLaunchTask": "release"
         }
     ]
 }

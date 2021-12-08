@@ -2,30 +2,28 @@
 
 HWND g_hwnd = nullptr;
 HANDLE g_handle = nullptr;
-uintptr_t g_pvzbase = 0;    //基址
-uintptr_t g_mainobject = 0; //游戏对象地址
+uintptr_t g_pvzbase = 0;    //鍩哄潃
+uintptr_t g_mainobject = 0; //娓告垙瀵硅薄鍦板潃
 
-// 读取内存判断是否应该显示信息
-// 返回 true : 可以显示信息
-// 返回 false : 不能显示信息
+// 璇诲彇鍐呭瓨鍒ゆ柇鏄惁搴旇鏄剧ず淇℃伅
+// 杩斿洖 true : 鍙互鏄剧ず淇℃伅
+// 杩斿洖 false : 涓嶈兘鏄剧ず淇℃伅
 bool IsDisplayed()
 {
-    if (GameUi() != 3) {
+    int game_ui = GameUi();
+    if (game_ui != 3) {
         g_hwnd = FindWindowW(L"MainWindow", L"Plants vs. Zombies");
-        if (GetForegroundWindow() != g_hwnd) { // 当 pvz 不在顶层时关闭显示
-            return false;
-        }
         DWORD pid;
         GetWindowThreadProcessId(g_hwnd, &pid);
         if (g_handle != nullptr) {
             CloseHandle(g_handle);
         }
         g_handle = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
-        //读取游戏基址
+        //璇诲彇娓告垙鍩哄潃
         g_pvzbase = ReadMemory<uintptr_t>(0x006a9ec0);
     }
     g_mainobject = ReadMemory<uintptr_t>(g_pvzbase + 0x768);
-    return GameUi() == 3 && IsMouseInPvZ();
+    return GetForegroundWindow() == g_hwnd;
 }
 
 /* place */

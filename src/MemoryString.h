@@ -9,11 +9,17 @@
 #include "Memory.h"
 #include <map>
 #include <qstringlist.h>
+#include <set>
+
+enum ObjectType {
+    PLANT,
+    ZOMBIE
+};
 
 struct MemoryDict {
     QString name;
     uint32_t address;
-    uint8_t data_type; // 0 : int, 1 : float, 2 : bool, 3 : short, 4 : byte
+    QString data_type;
 };
 
 struct Offset {
@@ -28,8 +34,9 @@ extern std::vector<MemoryDict> zombie_memory_dict;
 extern std::vector<std::map<int, Offset>> plant_offset_dict;
 extern std::vector<std::map<int, Offset>> zombie_offset_dict;
 
-std::pair<QStringList, double> PlantMemoryToString(const std::list<int>& dict_index, double find_threshold = 20);
-std::pair<QStringList, double> ZombieMemoryToString(const std::list<int>& dict_index, double find_threshold = 50);
+QStringList ObjectIndexToString(const std::list<int>& dict_index, int target_index, int object_type, int update_time);
+std::pair<QStringList, double> PlantMemoryToString(const std::list<int>& dict_index, double find_threshold, const std::set<int>& type_set, int update_time);
+std::pair<QStringList, double> ZombieMemoryToString(const std::list<int>& dict_index, double find_threshold, const std::set<int>& type_set, int update_time);
 QStringList SeedMemoryToString();
 QStringList PlaceMemoryToString();
 QStringList OtherMemoryToString();

@@ -9,12 +9,12 @@
 InfoWidget::InfoWidget()
 {
     this->hide();
-    // Êó±ê´©Í¸
+    // é¼ æ ‡ç©¿é€
     this->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     Qt::WindowFlags m_flags = windowFlags();
-    // ±£³ÖÖÃ¶¥ÇÒÈ¥µô±ß¿ò
+    // ä¿æŒç½®é¡¶ä¸”åŽ»æŽ‰è¾¹æ¡†
     this->setWindowFlags(m_flags | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint | Qt::SubWindow);
-    // ÉèÖÃÍ¸Ã÷¶È
+    // è®¾ç½®é€æ˜Žåº¦
     this->setWindowOpacity(0.6);
     this->label = new QLabel(this);
     QHBoxLayout* layout = new QHBoxLayout(this);

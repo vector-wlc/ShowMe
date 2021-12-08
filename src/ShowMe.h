@@ -5,11 +5,14 @@
  * @Description: 
  */
 #pragma once
-#pragma execution_character_set("utf-8")
+
 #include "CheckBoxWithIndex.h"
 #include "HlayoutPair.h"
 #include "InfoWidget.h"
 #include "Memory.h"
+#include "MemoryString.h"
+#include "MutexWidget.h"
+
 #include <QtWidgets/QMainWindow>
 #include <list>
 #include <qcheckbox.h>
@@ -18,8 +21,10 @@
 #include <qfontdialog.h>
 #include <qgroupbox.h>
 #include <qpushbutton.h>
+#include <qsettings.h>
 #include <qspinbox.h>
 #include <qtimer.h>
+#include <set>
 
 class ShowMe : public QMainWindow {
     Q_OBJECT
@@ -32,15 +37,24 @@ private:
     QTimer* timer;
     QTabWidget* tab_widget;
     std::vector<InfoWidget*> info_widget_vec;
-    std::vector<CheckBoxWithIndex*> plant_box_vec;
-    std::vector<CheckBoxWithIndex*> zombie_box_vec;
-    std::list<int> plant_dict_index;
-    std::list<int> zombie_dict_index;
+    std::vector<CheckBoxWithIndex*> plant_state_box_vec;
+    std::vector<CheckBoxWithIndex*> zombie_state_box_vec;
+    std::vector<CheckBoxWithIndex*> plant_type_box_vec;
+    std::vector<CheckBoxWithIndex*> zombie_type_box_vec;
+    MutexWidget* plant_mutex_table;
+    MutexWidget* zombie_mutex_table;
+    std::vector<InfoWidget*> mutex_plant_info_widget_vec;
+    std::vector<InfoWidget*> mutex_zombie_info_widget_vec;
 
-    std::vector<HLayoutPair<QLabel, QLabel>*> label_vec; // 其他页面中的显示label
+    std::list<int> plant_state_list;
+    std::list<int> zombie_state_list;
+    std::set<int> plant_type_set;
+    std::set<int> zombie_type_set;
+
+    std::vector<HLayoutPair<QLabel, QLabel>*> label_vec; // 鍏朵粬椤甸潰涓殑鏄剧ずlabel
 
     // settings
-    // 全局
+    // 鍏ㄥ眬
     HLayoutPair<QLabel, QSpinBox>* update_interval_box;
     HLayoutPair<QLabel, QDoubleSpinBox>* opacity_box;
     std::vector<QFont> info_font_vec;
@@ -48,29 +62,54 @@ private:
     std::vector<HLayoutPair<QLabel, QPushButton>*> info_font_btn_vec;
     std::vector<HLayoutPair<QLabel, QPushButton>*> info_color_btn_vec;
 
-    // 植物
-    HLayoutPair<QLabel, QDoubleSpinBox>* plant_find_threshold_box;
-    HLayoutPair<QLabel, QComboBox>* plant_type_box;
-    HLayoutPair<QLabel, QSpinBox>* plant_state_box;
-    HLayoutPair<QLabel, QDoubleSpinBox>* plant_offset_x_box;
-    HLayoutPair<QLabel, QDoubleSpinBox>* plant_offset_y_box;
-    HLayoutPair<QLabel, QPushButton>* plant_save_btn;
+    // 瀵硅薄
+    const std::vector<QString>* object_name_ptr;
+    std::vector<std::map<int, Offset>>* object_offset_dict_ptr;
+    HLayoutPair<QLabel, QComboBox>* object_box;
+    HLayoutPair<QLabel, QDoubleSpinBox>* find_threshold_box;
+    HLayoutPair<QLabel, QComboBox>* type_box;
+    HLayoutPair<QLabel, QSpinBox>* state_box;
+    HLayoutPair<QLabel, QDoubleSpinBox>* offset_x_box;
+    HLayoutPair<QLabel, QDoubleSpinBox>* offset_y_box;
+    HLayoutPair<QLabel, QPushButton>* save_btn;
+    double plant_find_threshold;
+    double zombie_find_threshold;
+    double* object_find_threshold_ptr;
 
-    // 僵尸
-    HLayoutPair<QLabel, QDoubleSpinBox>* zombie_find_threshold_box;
-    HLayoutPair<QLabel, QComboBox>* zombie_type_box;
-    HLayoutPair<QLabel, QSpinBox>* zombie_state_box;
-    HLayoutPair<QLabel, QDoubleSpinBox>* zombie_offset_x_box;
-    HLayoutPair<QLabel, QDoubleSpinBox>* zombie_offset_y_box;
-    HLayoutPair<QLabel, QPushButton>* zombie_save_btn;
-
+    void showOnMouse();
+    void showOnMutex();
     void run();
     void creatUi();
-    QWidget* creatPlantPage();
-    QWidget* creatZombiePage();
-    QWidget* creatOtherPage();
-    QWidget* creatSettingsPage();
-    void connectSettingsPage();
+
+    // Ui
+    QWidget* createStatePage(int object_type);
+    QWidget* createTypePage(int object_type);
+    QWidget* createObjectPage(int object_type);
+
+    QWidget* createMutexPage();
+
+    QWidget* createOtherPage();
+
+    QWidget* createObjectSettingsPage();
+    QWidget* createGlobalSettingsPage();
+    QWidget* createSettingsPage();
+
+    void createStatusBar();
+
+    // connect
+    void connectGlobalSettings();
+    void setObjectSettingsPage(int object_type);
+    void connectObjectSettings();
+    void connectSettings();
+
+    // settings
+    void saveGlobalSettings(QSettings& settings);
+    void saveObjectPageSettings(QSettings& settings, int object_type);
+    void saveObjectSettings(QSettings& settings, int object_type);
     void saveSettings();
+
+    void loadGlobalSettings(QSettings& settings);
+    void loadObjectPageSettings(QSettings& settings, int object_type);
+    void loadObjectSettings(QSettings& settings, int object_type);
     void loadSettings();
 };
